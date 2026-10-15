@@ -1,0 +1,3340 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#BDEBFF">
+<meta name="description" content="小雞山谷大冒險：五關不同玩法的休閒解謎小遊戲，加上可以一直玩的山谷滑行無盡模式。">
+<title>小雞山谷大冒險</title>
+<style>
+/* =========================================================
+   1. 設計變數
+   ========================================================= */
+:root {
+  --sky-top: #BDEBFF;
+  --sky-bottom: #FFF5DC;
+  --grass: #9BE07B;
+  --grass-deep: #5DBB63;
+  --chick: #FFD54A;
+  --beak: #FF9A3C;
+  --blush: #FF9EB5;
+  --primary: #FF8A65;
+  --primary-shadow: #E46B47;
+  --secondary: #FFFFFF;
+  --secondary-border: #F1E3CF;
+  --text: #4A3828;
+  --text-soft: #8C7660;
+  --card: #FFFDF8;
+  --card-shadow: rgba(120, 80, 40, 0.15);
+  --ok: #43C97A;
+  --bad: #FF6B6B;
+  --star: #FFC83D;
+  --berry-r: #FF5C7A;
+  --berry-b: #5B7CFA;
+  --berry-y: #FFC23D;
+  --water: #4FC3F7;
+  --night-top: #2B2F6B;
+  --night-bottom: #5A4FA0;
+  --beam: #FFE680;
+  --lantern-on: #FFB74D;
+  --lantern-off: #8A7F9E;
+  --radius: 20px;
+  --bounce: cubic-bezier(.34, 1.56, .64, 1);
+  --font: "PingFang TC", "Microsoft JhengHei", "Noto Sans TC", -apple-system, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font);
+  color: var(--text);
+  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 55%, #FFF9EC 100%);
+  background-attachment: scroll;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+[hidden] { display: none !important; }
+.num { font-variant-numeric: tabular-nums; }
+svg { display: block; }
+
+/* ---------- 按鈕 ---------- */
+.btn {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 16px;
+  border: 2px solid var(--secondary-border);
+  background: var(--secondary);
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: .02em;
+  box-shadow: 0 4px 0 var(--secondary-border);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: transform .18s var(--bounce), box-shadow .12s ease, background .15s ease, opacity .15s;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:active:not(:disabled) { transform: translateY(3px) scale(.94); box-shadow: 0 1px 0 var(--secondary-border); transition-duration: .06s; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--primary-shadow);
+}
+.btn.primary:active:not(:disabled) { box-shadow: 0 1px 0 var(--primary-shadow); }
+.btn.icon { width: 44px; padding: 0; }
+.btn svg { width: 22px; height: 22px; flex: none; }
+.btn:focus-visible, .station:focus-visible, .card3d:focus-visible, .basket:focus-visible, .tile:focus-visible, .endless-card:focus-visible {
+  outline: 3px solid #5B9BFA;
+  outline-offset: 3px;
+}
+
+/* =========================================================
+   2. 畫面與頂端列
+   ========================================================= */
+.screen { max-width: 1100px; margin: 0 auto; padding: 12px 16px 28px; animation: screenIn .22s ease-out; }
+@keyframes screenIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+.topbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.topbar h1, .topbar h2 { margin: 0; font-weight: 900; letter-spacing: .04em; }
+.topbar h1 { font-size: 26px; color: #6B4423; text-shadow: 0 2px 0 #fff; }
+.topbar h2 { font-size: 20px; flex: 1; min-width: 0; text-align: center; }
+.topbar .spacer { flex: 1; }
+.star-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 6px 14px; border-radius: 999px;
+  background: #fff; border: 2px solid var(--secondary-border);
+  font-weight: 900; color: #B8860B;
+}
+.star-pill .s { color: var(--star); font-size: 18px; }
+
+/* =========================================================
+   3. 地圖
+   ========================================================= */
+.map-card {
+  position: relative;
+  height: 470px;
+  border-radius: 28px;
+  overflow: hidden;
+  background: #C9F0FF;
+  box-shadow: 0 10px 30px var(--card-shadow), inset 0 0 0 4px rgba(255, 255, 255, .7);
+}
+.map-card svg.map-bg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.cloud { animation: drift 40s linear infinite; }
+.cloud.slow { animation-duration: 60s; }
+@keyframes drift { from { transform: translateX(-12%); } to { transform: translateX(112%); } }
+
+.station {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  border: 0;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  z-index: 2;
+}
+.station .badge {
+  width: 68px; height: 68px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid var(--chick);
+  box-shadow: 0 5px 0 #E8B930, 0 8px 18px var(--card-shadow);
+  display: grid; place-items: center;
+  position: relative;
+  transition: transform .2s var(--bounce);
+}
+.station .badge svg { width: 42px; height: 42px; }
+.station:hover:not(:disabled) .badge { transform: scale(1.08) rotate(-4deg); }
+.station:active:not(:disabled) .badge { transform: scale(.94); }
+.station .label {
+  background: #fff;
+  border-radius: 12px;
+  padding: 3px 10px 2px;
+  font-weight: 800;
+  font-size: 14px;
+  box-shadow: 0 3px 0 var(--secondary-border);
+  text-align: center;
+  white-space: nowrap;
+  line-height: 1.35;
+}
+.station .label .st { display: block; color: var(--star); font-size: 13px; letter-spacing: 2px; }
+.station .num-tag {
+  position: absolute; top: -6px; left: -6px;
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--primary); color: #fff; font-weight: 900; font-size: 14px;
+  display: grid; place-items: center;
+  box-shadow: 0 2px 0 var(--primary-shadow);
+}
+.station:disabled { cursor: not-allowed; }
+.station:disabled .badge { filter: grayscale(1); opacity: .75; border-color: #CFC6BA; box-shadow: 0 5px 0 #B9AFA3; }
+.station:disabled .label { color: var(--text-soft); }
+.station .lock { position: absolute; right: -8px; bottom: -6px; width: 28px; height: 28px; }
+
+.map-chick {
+  position: absolute;
+  width: 58px; height: 58px;
+  transform: translate(-50%, -100%);
+  z-index: 3;
+  pointer-events: none;
+  transition: left .5s var(--bounce), top .5s var(--bounce);
+}
+.map-chick svg { width: 100%; height: 100%; animation: bob 1.6s ease-in-out infinite; }
+@keyframes bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+
+.home-label {
+  position: absolute; transform: translate(-50%, 0);
+  font-weight: 900; font-size: 13px; color: #8B4A2B;
+  background: rgba(255, 255, 255, .85); border-radius: 10px; padding: 2px 8px;
+  z-index: 1; white-space: nowrap;
+}
+
+.endless-card {
+  margin-top: 16px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 24px;
+  border: 0;
+  text-align: left;
+  color: #fff;
+  background: linear-gradient(120deg, #5BC0EB 0%, #7C8CF8 55%, #B486F5 100%);
+  box-shadow: 0 6px 0 #5965C9, 0 12px 26px rgba(80, 90, 200, .25);
+  transition: transform .2s var(--bounce);
+}
+.endless-card:hover { transform: translateY(-2px); }
+.endless-card:active { transform: translateY(3px) scale(.98); box-shadow: 0 2px 0 #5965C9; }
+.endless-card .art { width: 96px; height: 70px; flex: none; }
+.endless-card .txt { flex: 1; min-width: 0; }
+.endless-card .t1 { display: block; font-size: 20px; font-weight: 900; }
+.endless-card .t2 { display: block; font-size: 14px; opacity: .95; margin-top: 2px; }
+.endless-card .go {
+  flex: none;
+  background: #fff; color: #5965C9;
+  border-radius: 14px; padding: 10px 16px; font-weight: 900;
+}
+
+.map-foot { text-align: center; margin-top: 18px; color: var(--text-soft); font-size: 13px; }
+.linkbtn {
+  border: 0; background: transparent; color: var(--text-soft);
+  text-decoration: underline; text-underline-offset: 3px;
+  min-height: 44px; padding: 0 12px; font-size: 14px;
+}
+
+/* =========================================================
+   4. 關卡外框
+   ========================================================= */
+.level-shell { max-width: 780px; margin: 0 auto; }
+.statusbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 10px; }
+.chip {
+  background: #fff;
+  border: 2px solid var(--secondary-border);
+  border-radius: 999px;
+  padding: 5px 14px;
+  font-weight: 800;
+  font-size: 14px;
+  white-space: nowrap;
+}
+.chip b { font-size: 17px; color: var(--primary-shadow); }
+.chip.goal { color: #B8860B; }
+.chip.goal .s { color: var(--star); }
+.chip.warn { background: #FFF1E8; border-color: #FFC9AE; color: #C2582F; }
+
+.chat { display: flex; align-items: center; gap: 10px; margin: 0 auto 10px; max-width: 560px; }
+.chat .avatar { width: 50px; height: 50px; flex: none; }
+.bubble {
+  position: relative;
+  flex: 1;
+  background: #fff;
+  border-radius: 16px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 15px;
+  box-shadow: 0 3px 0 var(--secondary-border);
+  min-height: 44px;
+  display: flex; align-items: center;
+}
+.bubble::before {
+  content: ""; position: absolute; left: -8px; top: 50%; margin-top: -8px;
+  border: 8px solid transparent; border-right-color: #fff; border-left: 0;
+}
+.bubble.pop { animation: bubblePop .3s var(--bounce); }
+@keyframes bubblePop { from { transform: scale(.92); } to { transform: none; } }
+
+.board-card {
+  position: relative;
+  border-radius: 26px;
+  padding: 18px 12px;
+  box-shadow: 0 10px 28px var(--card-shadow), inset 0 0 0 4px rgba(255, 255, 255, .6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 280px;
+  overflow: hidden;
+}
+.board-card.lv1 { background: radial-gradient(circle at 30% 20%, #F3FFE6, #D8F3BE); }
+.board-card.lv2 { background: linear-gradient(180deg, #FFF3DA, #F6DFB8); }
+.board-card.lv3 { background: radial-gradient(circle at 50% 30%, #E9F8D8, #CBEBA9); }
+.board-card.lv4 { background: radial-gradient(circle at 50% 40%, #E6F8D2, #BFE89A); }
+.board-card.lv5 { background: linear-gradient(180deg, var(--night-top), var(--night-bottom)); }
+
+.toolbar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+
+.shake { animation: shake .35s ease; }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(5px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+.flash { animation: flash 1s ease-in-out 2; }
+@keyframes flash {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 138, 101, 0); }
+  50% { box-shadow: 0 0 0 6px rgba(255, 138, 101, .9), 0 0 22px 6px rgba(255, 200, 61, .9); }
+}
+
+/* ---------- 第 1 關：翻牌 ---------- */
+.mem-grid { display: grid; grid-template-columns: repeat(4, var(--card-w)); gap: 10px; }
+.card3d {
+  width: var(--card-w);
+  height: calc(var(--card-w) * 1.25);
+  perspective: 600px;
+  border: 0; padding: 0; background: transparent;
+}
+.card3d .inner {
+  position: relative; width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  transition: transform .35s ease;
+}
+.card3d.up .inner { transform: rotateY(180deg); }
+.card3d .face {
+  position: absolute; inset: 0;
+  border-radius: 16px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: grid; place-items: center;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, .08);
+}
+.card3d .back {
+  background: var(--grass);
+  border: 3px solid #fff;
+  background-image: radial-gradient(circle at 25% 30%, rgba(255,255,255,.35) 0 10%, transparent 11%),
+                    radial-gradient(circle at 70% 70%, rgba(255,255,255,.25) 0 8%, transparent 9%);
+}
+.card3d .back svg { width: 46%; height: 46%; opacity: .85; }
+.card3d .front { background: var(--card); border: 3px solid #fff; transform: rotateY(180deg); }
+.card3d .front svg { width: 76%; height: 76%; }
+.card3d.matched .front { opacity: .55; }
+.card3d.matched .inner { animation: hop .45s var(--bounce); }
+@keyframes hop { 0% { transform: rotateY(180deg) scale(1); } 40% { transform: rotateY(180deg) scale(1.12) translateY(-6px); } 100% { transform: rotateY(180deg) scale(1); } }
+.card3d.win .inner { animation: hop .45s var(--bounce); }
+
+/* ---------- 第 2 關：莓果 ---------- */
+.baskets { display: flex; gap: var(--gap); align-items: flex-end; padding: 50px 0 30px; }
+.basket {
+  position: relative;
+  width: var(--bw);
+  height: calc(var(--bw) * 0.86 * 4 + 22px);
+  border: 0; padding: 0; background: transparent;
+  display: flex; flex-direction: column; align-items: center;
+  transition: transform .2s var(--bounce);
+}
+.basket .jar {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: 10px 10px 26px 26px;
+  background: linear-gradient(90deg, rgba(255,255,255,.55), rgba(255,255,255,.25) 40%, rgba(255,255,255,.5));
+  border: 3px solid #E2C391;
+  box-shadow: inset 0 -10px 0 rgba(214, 170, 110, .25), 0 5px 0 #D9B57E;
+}
+.basket.sel .jar { border-color: var(--primary); box-shadow: inset 0 -10px 0 rgba(214,170,110,.25), 0 5px 0 var(--primary-shadow), 0 0 0 4px rgba(255,138,101,.3); }
+.basket .tag { position: absolute; bottom: -28px; font-size: 13px; font-weight: 800; color: var(--text-soft); }
+.berry {
+  position: absolute;
+  left: 50%;
+  width: calc(var(--bw) * 0.8);
+  height: calc(var(--bw) * 0.8);
+  margin-left: calc(var(--bw) * -0.4);
+  transition: transform .2s var(--bounce);
+  pointer-events: none;
+}
+.berry svg { width: 100%; height: 100%; }
+.berry.lift { transform: translateY(calc(var(--bw) * -0.95)); }
+.basket.done { animation: basketHop .5s var(--bounce); }
+@keyframes basketHop { 0%, 100% { transform: none; } 40% { transform: translateY(-14px) scale(1.04); } }
+.flyer { position: fixed; z-index: 30; pointer-events: none; }
+
+/* ---------- 第 3 關：水管 ---------- */
+.pipe-wrap { display: flex; align-items: center; gap: 0; }
+.pipe-side { width: 40px; flex: none; position: relative; align-self: stretch; }
+.pipe-grid { display: grid; grid-template-columns: repeat(5, var(--cell)); gap: 4px; }
+.tile {
+  width: var(--cell); height: var(--cell);
+  border: 0; padding: 0;
+  border-radius: 12px;
+  background: #E7C998;
+  box-shadow: inset 0 -4px 0 rgba(150, 100, 50, .25);
+  position: relative;
+}
+.tile svg { width: 100%; height: 100%; transition: transform .15s var(--bounce); }
+.tile:active { filter: brightness(.96); }
+.tile .ch-bed { stroke: #FFF1D6; }
+.tile .ch-water { stroke: var(--water); opacity: 0; transition: opacity .2s; }
+.tile .ch-water-c { fill: var(--water); opacity: 0; transition: opacity .2s; }
+.tile .ch-flow { stroke: #fff; stroke-dasharray: 5 11; opacity: 0; }
+.tile.wet .ch-water, .tile.wet .ch-water-c { opacity: 1; }
+.tile.wet .ch-flow { opacity: .85; animation: flow .7s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -16; } }
+.pipe-side { height: var(--cell); }
+.pipe-side svg { width: 100%; height: 100%; }
+.sprout { transform-origin: 50% 100%; transform: scale(0); transition: transform .35s var(--bounce); }
+.sprout.up { transform: scale(1); }
+
+/* ---------- 第 4 關：一筆畫 ---------- */
+.stroke-box { position: relative; touch-action: none; user-select: none; -webkit-user-select: none; }
+.stroke-grid { display: grid; grid-template-columns: repeat(5, var(--cell)); gap: 4px; }
+.gcell {
+  width: var(--cell); height: var(--cell);
+  border-radius: 12px;
+  background: #A8DE84;
+  box-shadow: inset 0 -4px 0 rgba(60, 130, 60, .2);
+  position: relative;
+  display: grid; place-items: center;
+}
+.gcell.rock { background: #B9C79B; }
+.gcell.rock svg { width: 70%; height: 70%; }
+.gcell.visited { background: #DDF6C4; }
+.gcell .flower { width: 46%; height: 46%; transform: scale(0); transition: transform .3s var(--bounce); }
+.gcell.visited .flower { transform: scale(1); }
+.gcell.bloom .flower { animation: bloom .5s var(--bounce); }
+@keyframes bloom { 50% { transform: scale(1.5) rotate(20deg); } }
+.stroke-svg { position: absolute; inset: 0; pointer-events: none; }
+.stroke-chick {
+  position: absolute; width: calc(var(--cell) * .9); height: calc(var(--cell) * .9);
+  transform: translate(-50%, -55%);
+  transition: left .12s ease, top .12s ease;
+  pointer-events: none;
+}
+
+
+/* ---------- v1.1：更明確的動畫回饋 ---------- */
+.fx-p { position: fixed; z-index: 60; pointer-events: none; }
+.card3d.popflip { animation: cardPop .38s var(--bounce); }
+@keyframes cardPop { 0% { transform: scale(1); } 45% { transform: scale(1.09); } 100% { transform: scale(1); } }
+.card3d.nope { animation: shake .4s ease; }
+.card3d.nope .face.front { box-shadow: 0 0 0 4px var(--bad), 0 4px 0 rgba(0,0,0,.08); }
+.card3d.matched .face.front { box-shadow: 0 0 0 4px var(--ok), 0 0 18px rgba(67, 201, 122, .6); }
+.basket.full .jar { border-color: #8FD9A8; box-shadow: inset 0 -10px 0 rgba(214,170,110,.25), 0 5px 0 #6CC28C, 0 0 16px rgba(67,201,122,.45); }
+.basket.nope .jar { animation: nopeJar .5s ease; }
+@keyframes nopeJar { 30%, 70% { border-color: var(--bad); box-shadow: inset 0 -10px 0 rgba(214,170,110,.25), 0 5px 0 #E04848, 0 0 0 5px rgba(255,107,107,.35); } }
+.berry.lift { animation: liftBob 1s ease-in-out infinite; }
+@keyframes liftBob { 0%, 100% { transform: translateY(calc(var(--bw) * -0.95)); } 50% { transform: translateY(calc(var(--bw) * -1.08)); } }
+.berry.land { transform-origin: 50% 100%; animation: land .32s var(--bounce); }
+@keyframes land { 0% { transform: scale(1.18, .78); } 100% { transform: scale(1, 1); } }
+.tile.tap { animation: tilePop .28s var(--bounce); }
+@keyframes tilePop { 0% { transform: scale(.88); } 60% { transform: scale(1.06); } 100% { transform: scale(1); } }
+.tile.splash { animation: splash .6s ease-out; }
+@keyframes splash { 0% { box-shadow: inset 0 -4px 0 rgba(150,100,50,.25), 0 0 0 0 rgba(79,195,247,.9); } 100% { box-shadow: inset 0 -4px 0 rgba(150,100,50,.25), 0 0 0 14px rgba(79,195,247,0); } }
+.stream-wave { animation: wave 1.4s ease-in-out infinite; }
+@keyframes wave { 50% { transform: translateX(3px); } }
+.gcell .stepno {
+  position: absolute; right: 3px; bottom: 2px;
+  min-width: 16px; padding: 0 4px; border-radius: 7px;
+  font-size: 11px; font-weight: 900; line-height: 15px; text-align: center;
+  color: #4E7A32; background: rgba(255, 255, 255, .85);
+  font-variant-numeric: tabular-nums; pointer-events: none;
+}
+.gcell .stepno:empty { display: none; }
+
+/* ---------- 第 5 關：鏡子 ---------- */
+.mirror-svg { width: var(--msize); height: auto; touch-action: manipulation; }
+.mirror-svg .mbtn { cursor: pointer; }
+.mirror-svg .mbtn:focus { outline: none; }
+.mirror-svg .mbtn:focus-visible .mhit { stroke: #fff; stroke-width: 3; }
+.mirror-svg .mface { transform-box: fill-box; transform-origin: center; transition: transform .15s var(--bounce); }
+.mirror-svg .beam-glow { stroke: var(--beam); stroke-width: 14; opacity: .35; fill: none; stroke-linecap: round; stroke-linejoin: round; filter: url(#blur6); }
+.mirror-svg .beam-core { stroke: #FFF7C2; stroke-width: 4; fill: none; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 10 8; animation: beamflow .8s linear infinite; }
+@keyframes beamflow { to { stroke-dashoffset: -18; } }
+.lantern-body { transition: fill .25s; }
+.lantern.on .lantern-glow { opacity: 1; animation: breathe 1.6s ease-in-out infinite; }
+.lantern-glow { opacity: 0; transition: opacity .25s; }
+@keyframes breathe { 50% { opacity: .55; } }
+.firefly { animation: fly 1.2s ease-out forwards; }
+@keyframes fly { from { transform: translate(0, 0); opacity: 1; } to { transform: translate(var(--fx), var(--fy)); opacity: 0; } }
+
+/* =========================================================
+   5. 山谷滑行
+   ========================================================= */
+.slide-wrap {
+  position: relative;
+  height: 60vh;
+  min-height: 300px;
+  border-radius: 26px;
+  overflow: hidden;
+  box-shadow: 0 10px 28px var(--card-shadow), inset 0 0 0 4px rgba(255, 255, 255, .6);
+  background: var(--sky-top);
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.slide-wrap canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.hud {
+  position: absolute; left: 12px; right: 12px; top: 10px;
+  display: flex; gap: 8px; flex-wrap: wrap; pointer-events: none;
+}
+.hud .chip { background: rgba(255, 255, 255, .9); }
+.speedbar { width: 110px; height: 12px; border-radius: 99px; background: rgba(255,255,255,.7); overflow: hidden; align-self: center; border: 2px solid #fff; }
+.speedbar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #43C97A, #FFC83D, #FF6B6B); border-radius: 99px; }
+.overlay {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255, 245, 220, .55);
+  backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+  padding: 16px;
+}
+.slide-tip { text-align: center; color: var(--text-soft); font-weight: 700; font-size: 14px; margin: 10px 0 0; }
+
+/* =========================================================
+   6. 對話框
+   ========================================================= */
+.modal {
+  position: fixed; inset: 0; z-index: 40;
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  background: rgba(74, 56, 40, .35);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+}
+.mcard {
+  width: min(440px, 100%);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 28px;
+  padding: 24px 22px 20px;
+  box-shadow: 0 16px 48px rgba(74, 56, 40, .3), inset 0 0 0 4px #fff;
+  text-align: center;
+  animation: popIn .32s var(--bounce);
+}
+@keyframes popIn { from { transform: scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
+.mcard h3 { margin: 6px 0 8px; font-size: 22px; font-weight: 900; }
+.mcard p { margin: 0 0 8px; line-height: 1.65; }
+.mcard .mchick { width: 92px; height: 92px; margin: 0 auto; }
+.mcard .mchick.jump svg { animation: jump .6s var(--bounce) infinite alternate; }
+@keyframes jump { from { transform: translateY(0); } to { transform: translateY(-12px); } }
+.mcard .goal { color: #B8860B; font-weight: 800; }
+.mactions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 16px; }
+.mactions .btn { flex: 1 1 120px; }
+.rstars { display: flex; justify-content: center; gap: 6px; margin: 4px 0 6px; }
+.rstars span { font-size: 46px; line-height: 1; color: #E3DACB; transform: scale(0); }
+.rstars span.go { animation: starPop .45s var(--bounce) forwards; }
+.rstars span.on { color: var(--star); text-shadow: 0 3px 0 #E0A21C; }
+@keyframes starPop { to { transform: scale(1); } }
+.newrec { color: var(--primary-shadow); font-weight: 900; animation: popIn .4s var(--bounce); }
+.note-soft { color: var(--text-soft); font-size: 14px; }
+
+
+/* ---------- v1.1：結局動畫與其他 ---------- */
+.home-btn { border: 2px solid #FFC9AE; cursor: pointer; box-shadow: 0 3px 0 #FFC9AE; animation: homeGlow 1.8s ease-in-out infinite; }
+@keyframes homeGlow { 50% { box-shadow: 0 3px 0 #FFC9AE, 0 0 16px rgba(255, 200, 61, .9); } }
+.mcard.ending { width: min(520px, 100%); padding-top: 14px; }
+.end-scene { border-radius: 20px; overflow: hidden; box-shadow: inset 0 0 0 3px #fff; margin-bottom: 6px; }
+.end-scene > svg { display: block; width: 100%; height: auto; }
+.end-walk, .end-hop, .end-mom, .end-heart, .end-spark { transform-box: fill-box; }
+.mcard.ending .end-text { opacity: 0; }
+.mcard.ending.play .end-text { animation: endText .5s ease-out 2.4s forwards; }
+@keyframes endText { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.mcard.ending.play .end-walk { animation: endWalk 2.2s ease-in-out forwards; }
+@keyframes endWalk { from { transform: translateX(0); } to { transform: translateX(255px); } }
+.mcard.ending.play .end-hop { animation: endHop .36s ease-in-out 6; }
+@keyframes endHop { 50% { transform: translateY(-16px); } }
+.end-mom { transform-origin: 50% 100%; transform: scale(0); }
+.mcard.ending.play .end-mom { animation: momPop .55s cubic-bezier(.34, 1.56, .64, 1) 2s forwards; }
+@keyframes momPop { to { transform: scale(1); } }
+.end-heart { opacity: 0; transform-origin: center; }
+.mcard.ending.play .end-heart { animation: heartUp 1.8s ease-out forwards; }
+@keyframes heartUp { 0% { opacity: 0; transform: translateY(0) scale(.5); } 20% { opacity: 1; transform: translateY(-6px) scale(1.1); } 100% { opacity: 0; transform: translateY(-60px) scale(.9); } }
+.end-spark { animation: twinkle 1.6s ease-in-out infinite; }
+@keyframes twinkle { 50% { opacity: .2; } }
+.hud .chip.combo { background: #E9FFF1; border-color: #8FD9A8; color: #2E9E5B; }
+.hud .chip.hold { background: #FFF1E8; border-color: #FFC9AE; color: #E46B47; }
+@media (max-width: 520px) {
+  .toolbar { gap: 6px; }
+  .toolbar .btn { padding: 0 6px; font-size: 14px; gap: 3px; }
+  .toolbar .btn svg { width: 18px; height: 18px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mcard.ending.play .end-text, .mcard.ending.play .end-mom, .mcard.ending.play .end-walk, .mcard.ending.play .end-heart { animation-delay: 0s !important; }
+  .mcard.ending.play .end-hop, .end-spark, .home-btn, .stream-wave, .berry.lift { animation: none !important; }
+}
+
+#confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 50; }
+
+/* =========================================================
+   7. 響應式
+   ========================================================= */
+@media (max-width: 699px) {
+  .screen { padding: 10px 12px 24px; }
+  .topbar h1 { font-size: 22px; }
+  .topbar h2 { font-size: 18px; }
+  .map-card { height: 820px; }
+  .endless-card { padding: 14px; gap: 12px; }
+  .endless-card .art { width: 72px; height: 54px; }
+  .endless-card .t1 { font-size: 18px; }
+  .endless-card .go { padding: 8px 12px; }
+  .board-card { padding: 14px 8px; border-radius: 22px; }
+  .slide-wrap { height: 55vh; }
+  .btn { padding: 0 12px; }
+  .statusbar .chip { font-size: 13px; padding: 4px 10px; }
+  #screenLevel .topbar h2, #screenSlide .topbar h2 { order: 5; flex: 1 1 100%; font-size: 18px; margin-top: -2px; }
+  #btnRule, #slidePause { margin-left: auto; }
+}
+@media (max-width: 430px) {
+  .endless-card .go { display: none; }
+  .endless-card .t1 { font-size: 17px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .12s !important; transition-duration: .12s !important; }
+  .cloud, .map-chick svg, .tile.wet .ch-flow, .beam-core, .lantern.on .lantern-glow, .mcard .mchick.jump svg { animation: none !important; }
+}
+
+</style>
+</head>
+<body>
+<!-- ========== 地圖（首頁） ========== -->
+<section class="screen" id="screenMap">
+  <header class="topbar">
+    <h1>小雞山谷大冒險</h1>
+    <span class="spacer"></span>
+    <span class="star-pill" id="totalStars" title="總星數"><span class="s">★</span><span class="num">0 / 15</span></span>
+    <button class="btn" id="btnStory">故事與玩法</button>
+    <button class="btn icon mute-btn" aria-label="靜音切換"></button>
+  </header>
+
+  <div class="map-card" id="mapCard"></div>
+
+  <button class="endless-card" id="endlessCard">
+    <span class="art" id="endlessArt"></span>
+    <span class="txt">
+      <span class="t1">山谷滑行・無盡模式</span>
+      <span class="t2" id="endlessBest">最高紀錄 0 公尺</span>
+    </span>
+    <span class="go">開始滑行 ›</span>
+  </button>
+
+  <div class="map-foot">
+    <button class="linkbtn" id="btnClear">清除紀錄</button>
+    <div id="storageNote" hidden>本次進度可能無法保留</div>
+  </div>
+</section>
+
+<!-- ========== 關卡 ========== -->
+<section class="screen" id="screenLevel" hidden>
+  <div class="level-shell">
+    <header class="topbar">
+      <button class="btn" id="btnBack" aria-label="回地圖">← 地圖</button>
+      <h2 id="levelTitle">第 1 關｜花田記憶</h2>
+      <button class="btn icon" id="btnRule" aria-label="查看規則">?</button>
+      <button class="btn icon mute-btn" aria-label="靜音切換"></button>
+    </header>
+    <div class="statusbar">
+      <span class="chip" id="chipCount">步數 <b class="num">0</b></span>
+      <span class="chip goal" id="chipGoal"></span>
+      <span class="chip" id="chipPuzzle" hidden></span>
+      <span class="chip" id="chipBest"></span>
+      <span class="chip warn" id="chipHint" hidden>已使用提示：最高 2 星</span>
+    </div>
+    <div class="chat">
+      <div class="avatar" id="chatAvatar"></div>
+      <div class="bubble" id="bubble" aria-live="polite"></div>
+    </div>
+    <div class="board-card" id="boardCard"><div id="board"></div></div>
+    <div class="toolbar">
+      <button class="btn" id="btnHint"></button>
+      <button class="btn" id="btnUndo"></button>
+      <button class="btn" id="btnRestart"></button>
+      <button class="btn" id="btnSwap"></button>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 山谷滑行 ========== -->
+<section class="screen" id="screenSlide" hidden>
+  <header class="topbar">
+    <button class="btn" id="slideBack" aria-label="回地圖">← 地圖</button>
+    <h2>山谷滑行</h2>
+    <button class="btn" id="slidePause" disabled>暫停</button>
+    <button class="btn icon mute-btn" aria-label="靜音切換"></button>
+  </header>
+  <div class="slide-wrap" id="slideWrap">
+    <canvas id="slideCanvas" aria-label="山谷滑行遊戲畫面"></canvas>
+    <div class="hud" id="slideHud">
+      <span class="chip">距離 <b class="num" id="hudDist">0</b> 公尺</span>
+      <span class="chip"><span style="color:var(--star)">★</span> <b class="num" id="hudStars">0</b></span>
+      <span class="speedbar" title="速度"><i id="hudSpeed"></i></span>
+      <span class="chip">最高 <b class="num" id="hudBest">0</b> 公尺</span>
+      <span class="chip combo" id="hudCombo" hidden></span>
+      <span class="chip hold" id="hudHold" hidden>往下衝！</span>
+    </div>
+    <div class="overlay" id="slideStart">
+      <div class="mcard">
+        <div class="mchick" id="slideStartChick"></div>
+        <h3>山谷滑行</h3>
+        <p><b>按住畫面</b>（或空白鍵）：用力往下壓，下坡加速更快。<br><b>放開</b>：變輕，衝過山頂時還會<b>自動小跳一下</b>，飛得更高！</p>
+        <p class="goal">訣竅：下坡按住、上坡放開；落在下坡是「完美落地」，連續完美有連擊加分！</p>
+        <p class="note-soft">靠近星星會被吸過來；高空的彩虹星一顆抵 3 顆。<br>分數 = 距離 + 星星 × 20 + 連擊加分</p>
+        <div class="mactions"><button class="btn primary" id="slideGo">開始滑行</button></div>
+      </div>
+    </div>
+    <div class="overlay" id="slidePaused" hidden>
+      <div class="mcard">
+        <h3>暫停中</h3>
+        <div class="mactions">
+          <button class="btn" id="slideQuit">回地圖</button>
+          <button class="btn primary" id="slideResume">繼續滑行</button>
+        </div>
+      </div>
+    </div>
+    <div class="overlay" id="slideOver" hidden>
+      <div class="mcard">
+        <div class="mchick" id="slideOverChick"></div>
+        <h3>啾啾滑不動了！</h3>
+        <p>距離 <b class="num" id="ovDist">0</b> 公尺　星星 <b class="num" id="ovStars">0</b> 顆</p>
+        <p class="note-soft" id="ovBonus"></p>
+        <p style="font-size:20px;font-weight:900">分數 <span class="num" id="ovScore">0</span></p>
+        <div class="newrec" id="ovNew" hidden>新紀錄！</div>
+        <div class="mactions">
+          <button class="btn" id="ovMap">回地圖</button>
+          <button class="btn primary" id="ovAgain">再滑一次</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p class="slide-tip">按住畫面或空白鍵往下衝，放開就飛起來</p>
+</section>
+
+<!-- ========== 對話框 ========== -->
+<div class="modal" id="modalIntro" role="dialog" aria-modal="true" aria-labelledby="introTitle" hidden>
+  <div class="mcard">
+    <div class="mchick jump" id="introChick"></div>
+    <h3 id="introTitle">小雞山谷大冒險</h3>
+    <p>小雞啾啾在山谷裡迷路了！幫牠一站一站完成任務，回到溫暖的家吧。</p>
+    <p>每關最多 3 顆星；卡關時可以用提示，但用了提示最高只能拿 2 星。</p>
+    <p>另外，「山谷滑行」隨時都能玩，挑戰你能滑多遠！</p>
+    <div class="mactions"><button class="btn primary" id="introGo">出發！</button></div>
+  </div>
+</div>
+
+<div class="modal" id="modalRule" role="dialog" aria-modal="true" aria-labelledby="ruleTitle" hidden>
+  <div class="mcard">
+    <div class="mchick" id="ruleChick"></div>
+    <h3 id="ruleTitle"></h3>
+    <p id="ruleStory" style="font-weight:800"></p>
+    <p id="ruleText"></p>
+    <p class="goal" id="ruleGoal"></p>
+    <div class="mactions"><button class="btn primary" id="ruleGo">開始！</button></div>
+  </div>
+</div>
+
+<div class="modal" id="modalResult" role="dialog" aria-modal="true" aria-labelledby="resTitle" hidden>
+  <div class="mcard">
+    <div class="mchick jump" id="resChick"></div>
+    <h3 id="resTitle">過關！</h3>
+    <div class="rstars" id="resStars"><span>★</span><span>★</span><span>★</span></div>
+    <p id="resText" style="font-weight:800"></p>
+    <p class="note-soft" id="resHintNote" hidden>這次用了提示，最高 2 星。不用提示再挑戰看看！</p>
+    <div class="newrec" id="resNew" hidden>新紀錄！</div>
+    <div class="mactions">
+      <button class="btn" id="resMap">回地圖</button>
+      <button class="btn" id="resAgain">再玩一次</button>
+      <button class="btn primary" id="resNext">下一站</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalEnding" role="dialog" aria-modal="true" aria-labelledby="endTitle" hidden>
+  <div class="mcard ending">
+    <div class="end-scene" id="endScene"></div>
+    <h3 id="endTitle" class="end-text">恭喜通關！</h3>
+    <p class="end-text">啾啾平安回到家了，雞媽媽開心得張開翅膀抱抱牠～謝謝你一路的幫忙！</p>
+    <p class="end-text goal" id="endStars"></p>
+    <p class="end-text note-soft" id="endTip"></p>
+    <div class="mactions end-text">
+      <button class="btn" id="endMap">回地圖</button>
+      <button class="btn primary" id="endSlide">去山谷滑行</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="modalConfirm" role="dialog" aria-modal="true" aria-labelledby="cfTitle" hidden>
+  <div class="mcard">
+    <h3 id="cfTitle">清除所有紀錄？</h3>
+    <p>星星、最佳成績、解鎖進度、滑行紀錄與設定都會被清除，無法復原。</p>
+    <div class="mactions">
+      <button class="btn" id="cfCancel">取消</button>
+      <button class="btn primary" id="cfOk">確認清除</button>
+    </div>
+  </div>
+</div>
+
+<canvas id="confetti" aria-hidden="true"></canvas>
+
+<script>
+(function () {
+'use strict';
+
+/* =========================================================
+   一、工具函式
+   ========================================================= */
+const $ = (sel, root) => (root || document).querySelector(sel);
+const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const motionQuery = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+const reducedMotion = () => !!(motionQuery && motionQuery.matches);
+const starStr = (n) => '★'.repeat(n) + '☆'.repeat(3 - n);
+/** 兩個 #RRGGBB 顏色之間做線性混合 */
+function mixColor(a, b, t) {
+  const pa = [1, 3, 5].map((i) => parseInt(a.slice(i, i + 2), 16));
+  const pb = [1, 3, 5].map((i) => parseInt(b.slice(i, i + 2), 16));
+  return '#' + pa.map((v, i) => Math.round(v + (pb[i] - v) * clamp(t, 0, 1)).toString(16).padStart(2, '0')).join('');
+}
+
+/** 可設定種子的亂數（mulberry32） */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a = (a + 0x6D2B79F5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/** 集中管理計時器，離開畫面時一次清除 */
+function makeTimers() {
+  const ids = new Set();
+  return {
+    set(fn, ms) { const id = setTimeout(() => { ids.delete(id); fn(); }, ms); ids.add(id); return id; },
+    clear(id) { clearTimeout(id); ids.delete(id); },
+    clearAll() { ids.forEach((id) => clearTimeout(id)); ids.clear(); },
+  };
+}
+
+/* =========================================================
+   二、美術素材（內嵌 SVG）
+   ========================================================= */
+const Art = {
+  /** 主角啾啾：normal / happy（只回傳內部圖形，可放進任何 SVG） */
+  chickBody(mood) {
+    const happy = mood === 'happy';
+    const eyes = happy
+      ? '<path d="M33 49 q5 -6 10 0" stroke="#3B2A1A" stroke-width="3.2" fill="none" stroke-linecap="round"/><path d="M57 49 q5 -6 10 0" stroke="#3B2A1A" stroke-width="3.2" fill="none" stroke-linecap="round"/>'
+      : '<circle cx="38" cy="48" r="5" fill="#3B2A1A"/><circle cx="39.8" cy="46.2" r="1.8" fill="#fff"/><circle cx="62" cy="48" r="5" fill="#3B2A1A"/><circle cx="63.8" cy="46.2" r="1.8" fill="#fff"/>';
+    const wingL = happy ? 'rotate(-35 18 58)' : 'rotate(18 18 62)';
+    const wingR = happy ? 'rotate(35 82 58)' : 'rotate(-18 82 62)';
+    return `<ellipse cx="50" cy="93" rx="25" ry="4.5" fill="rgba(90,60,30,.15)"/>
+      <path d="M44 90 v-6 M56 90 v-6" stroke="#FF9A3C" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="18" cy="62" rx="9" ry="14" fill="#F5C332" transform="${wingL}"/>
+      <ellipse cx="82" cy="62" rx="9" ry="14" fill="#F5C332" transform="${wingR}"/>
+      <ellipse cx="50" cy="56" rx="35" ry="33" fill="#FFD54A"/>
+      <ellipse cx="50" cy="67" rx="21" ry="17" fill="#FFE58A"/>
+      <path d="M49 24 C 43 12, 57 8, 53 19" stroke="#F2B600" stroke-width="4" fill="none" stroke-linecap="round"/>
+      ${eyes}
+      <ellipse cx="28" cy="58" rx="6.5" ry="3.8" fill="#FF9EB5" opacity=".85"/>
+      <ellipse cx="72" cy="58" rx="6.5" ry="3.8" fill="#FF9EB5" opacity=".85"/>
+      <path d="M44.5 55 L55.5 55 L50 62.5 Z" fill="#FF9A3C" stroke="#E87E22" stroke-width="1.2" stroke-linejoin="round"/>`;
+  },
+  chick(mood) { return `<svg viewBox="0 0 100 100" aria-hidden="true">${this.chickBody(mood)}</svg>`; },
+  /** 雞媽媽（結局用） */
+  momBody() {
+    return `<ellipse cx="50" cy="94" rx="30" ry="5" fill="rgba(90,60,30,.15)"/>
+      <path d="M42 92 v-8 M58 92 v-8" stroke="#FF9A3C" stroke-width="4" stroke-linecap="round"/>
+      <path d="M78 52 q16 -10 14 10 q-6 -2 -10 4 z" fill="#F3E4CF"/>
+      <ellipse cx="50" cy="58" rx="36" ry="32" fill="#FFF8EE" stroke="#EADBC6" stroke-width="2"/>
+      <ellipse cx="68" cy="62" rx="12" ry="16" fill="#F3E4CF" transform="rotate(-15 68 62)"/>
+      <circle cx="42" cy="22" r="6" fill="#FF5C7A"/><circle cx="50" cy="18" r="7" fill="#FF5C7A"/><circle cx="58" cy="22" r="6" fill="#FF5C7A"/>
+      <circle cx="40" cy="44" r="4.6" fill="#3B2A1A"/><circle cx="41.6" cy="42.4" r="1.6" fill="#fff"/>
+      <circle cx="60" cy="44" r="4.6" fill="#3B2A1A"/><circle cx="61.6" cy="42.4" r="1.6" fill="#fff"/>
+      <path d="M45 50 L55 50 L50 57 Z" fill="#FF9A3C"/>
+      <path d="M48 57 q2 7 4 0" fill="#FF5C7A"/>
+      <ellipse cx="31" cy="53" rx="6" ry="3.4" fill="#FF9EB5" opacity=".85"/>
+      <ellipse cx="69" cy="53" rx="6" ry="3.4" fill="#FF9EB5" opacity=".85"/>
+      <path d="M34 70 q16 12 32 0 v10 q-16 8 -32 0 z" fill="#FFC1D3"/>`;
+  },
+  /** 通關結局場景：夕陽、小屋、雞媽媽在門口，啾啾一路跳回家 */
+  endingScene() {
+    const heart = (x, d) => `<path class="end-heart" style="animation-delay:${d}s" d="M${x} 112 c-6 -8 -18 -4 -14 6 c3 6 14 12 14 12 c0 0 11 -6 14 -12 c4 -10 -8 -14 -14 -6 z" fill="#FF7A99"/>`;
+    const sparkles = Array.from({ length: 8 }, (_, i) => `<circle class="end-spark" style="animation-delay:${(i * 0.27).toFixed(2)}s" cx="${30 + i * 42}" cy="${20 + (i % 3) * 14}" r="2.4" fill="#fff"/>`).join('');
+    return `<svg viewBox="0 0 360 230" aria-label="啾啾回到家的結局動畫" role="img">
+      <defs><linearGradient id="endSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFD9A8"/><stop offset="1" stop-color="#FFC1B6"/></linearGradient></defs>
+      <rect width="360" height="230" fill="url(#endSky)"/>
+      ${sparkles}
+      <circle cx="78" cy="160" r="52" fill="#FFB25C" opacity=".35"/><circle cx="78" cy="160" r="36" fill="#FFA14A"/>
+      <path d="M0 168 Q 90 132 180 160 T 360 150 L360 230 L0 230 Z" fill="#B8EA9A"/>
+      <path d="M0 188 Q 120 168 220 186 T 360 180 L360 230 L0 230 Z" fill="#9BE07B"/>
+      <g transform="translate(232,92)">
+        <circle cx="38" cy="40" r="62" fill="#FFE680" opacity=".28"/>
+        <rect x="0" y="38" width="80" height="56" rx="8" fill="#FFE2C2" stroke="#E0B48A" stroke-width="2.5"/>
+        <path d="M-10 40 L40 -2 L90 40 Z" fill="#FF8A65" stroke="#E46B47" stroke-width="3" stroke-linejoin="round"/>
+        <rect x="58" y="2" width="10" height="20" fill="#C47A3A"/>
+        <rect x="8" y="50" width="18" height="15" rx="3" fill="#FFE680" stroke="#E0B48A" stroke-width="2"/>
+        <rect x="52" y="50" width="18" height="15" rx="3" fill="#FFE680" stroke="#E0B48A" stroke-width="2"/>
+        <rect x="29" y="60" width="22" height="34" rx="10" fill="#8B4A2B"/>
+      </g>
+      <g class="end-mom"><svg x="244" y="128" width="62" height="62" viewBox="0 0 100 100">${this.momBody()}</svg></g>
+      <g class="end-walk"><g class="end-hop"><svg x="-60" y="148" width="50" height="50" viewBox="0 0 100 100">${this.chickBody('happy')}</svg></g></g>
+      ${heart(246, 2.3)}${heart(262, 2.55)}${heart(230, 2.8)}
+    </svg>`;
+  },
+  speaker(muted) {
+    const waves = muted
+      ? '<path d="M16 9 l6 6 M22 9 l-6 6" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/>'
+      : '<path d="M16 8.5 q3 3.5 0 7 M18.8 6 q5.2 6 0 12" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/>';
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5 h4 l5 -4 v13 l-5 -4 h-4 z" fill="currentColor" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>${waves}</svg>`;
+  },
+  bulb: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a6 6 0 0 0-3.6 10.8c.6.5 1 1.2 1 2V17h5.2v-1.2c0-.8.4-1.5 1-2A6 6 0 0 0 12 3z" fill="#FFD54A" stroke="#C99A1A" stroke-width="1.6"/><path d="M9.6 19.5h4.8M10.4 21.5h3.2" stroke="#8C7660" stroke-width="1.8" stroke-linecap="round"/></svg>',
+  undo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7 L4 11 L9 15" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 11 h9 a5 5 0 0 1 0 10 h-3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  swap: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8 h13 l-3 -3 M20 16 h-13 l3 3" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  restart: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12a7 7 0 1 1-2.1-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/><path d="M17.5 2.5 v5 h-5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  lock: '<svg viewBox="0 0 28 28" aria-hidden="true"><rect x="5" y="12" width="18" height="13" rx="4" fill="#9B8F82"/><path d="M9 12 v-3 a5 5 0 0 1 10 0 v3" stroke="#9B8F82" stroke-width="3" fill="none"/><circle cx="14" cy="18.5" r="2" fill="#fff"/></svg>',
+
+  /** 站點圖示 */
+  stationIcon(i) {
+    switch (i) {
+      case 0: return `<svg viewBox="0 0 48 48">${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="24" cy="13" rx="7" ry="10" fill="#FF9EB5" transform="rotate(${a} 24 24)"/>`).join('')}<circle cx="24" cy="24" r="6.5" fill="#FFD54A"/></svg>`;
+      case 1: return '<svg viewBox="0 0 48 48"><circle cx="18" cy="28" r="10" fill="#FF5C7A"/><circle cx="31" cy="30" r="9" fill="#5B7CFA"/><path d="M18 18 q2 -8 9 -9" stroke="#5DBB63" stroke-width="3" fill="none" stroke-linecap="round"/><ellipse cx="29" cy="10" rx="6" ry="3.5" fill="#5DBB63" transform="rotate(-20 29 10)"/><circle cx="15" cy="25" r="1.3" fill="#FFE4E9"/><circle cx="21" cy="30" r="1.3" fill="#FFE4E9"/><circle cx="17" cy="33" r="1.3" fill="#FFE4E9"/></svg>';
+      case 2: return '<svg viewBox="0 0 48 48"><path d="M24 6 C 15 19, 11 25, 11 30 a13 13 0 0 0 26 0 c0 -5 -4 -11 -13 -24z" fill="#4FC3F7"/><path d="M17 31 a7 7 0 0 0 6 7" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/></svg>';
+      case 3: return '<svg viewBox="0 0 48 48"><g fill="#C47A3A"><path d="M14 30 l-6 -9 M14 30 l0 -11 M14 30 l6 -9" stroke="#C47A3A" stroke-width="3.4" stroke-linecap="round"/><path d="M33 22 l-6 -9 M33 22 l0 -11 M33 22 l6 -9" stroke="#C47A3A" stroke-width="3.4" stroke-linecap="round"/><circle cx="14" cy="32" r="3"/><circle cx="33" cy="24" r="3"/></g><circle cx="22" cy="40" r="2" fill="#9BE07B"/><circle cx="38" cy="38" r="2" fill="#9BE07B"/></svg>';
+      default: return '<svg viewBox="0 0 48 48"><path d="M24 5 v5" stroke="#8C7660" stroke-width="3" stroke-linecap="round"/><rect x="17" y="9" width="14" height="4" rx="2" fill="#B5651D"/><ellipse cx="24" cy="25" rx="13" ry="12" fill="#FFB74D"/><path d="M24 13 v24 M17 15 q-3 10 0 20 M31 15 q3 10 0 20" stroke="#E8913A" stroke-width="1.8" fill="none"/><rect x="18" y="36" width="12" height="4" rx="2" fill="#B5651D"/><path d="M24 40 v4" stroke="#FF5C7A" stroke-width="3" stroke-linecap="round"/></svg>';
+    }
+  },
+
+  /** 第 1 關的 6 種花（顏色＋形狀都不同） */
+  flower(type) {
+    const petals = (n, rx, ry, dist, color, extra) => Array.from({ length: n }, (_, i) =>
+      `<ellipse cx="32" cy="${32 - dist}" rx="${rx}" ry="${ry}" fill="${color}" ${extra || ''} transform="rotate(${(360 / n) * i} 32 32)"/>`).join('');
+    switch (type) {
+      case 0: // 紅色圓瓣花
+        return `<svg viewBox="0 0 64 64">${Array.from({ length: 6 }, (_, i) => `<circle cx="32" cy="17" r="9" fill="#FF5C7A" transform="rotate(${60 * i} 32 32)"/>`).join('')}<circle cx="32" cy="32" r="8" fill="#FFD54A"/><circle cx="29" cy="29" r="2.4" fill="#fff" opacity=".7"/></svg>`;
+      case 1: // 黃色向日葵
+        return `<svg viewBox="0 0 64 64">${petals(14, 4.2, 11, 17, '#FFC23D')}<circle cx="32" cy="32" r="10" fill="#8B5A2B"/><circle cx="29" cy="29" r="1.6" fill="#C08552"/><circle cx="35" cy="31" r="1.6" fill="#C08552"/><circle cx="31" cy="36" r="1.6" fill="#C08552"/></svg>`;
+      case 2: // 藍色鈴鐺花
+        return '<svg viewBox="0 0 64 64"><path d="M32 6 q12 4 10 14" stroke="#5DBB63" stroke-width="3" fill="none" stroke-linecap="round"/><path d="M42 20 C 30 20, 26 30, 24 42 L 18 48 L 50 48 L 46 42 C 44 30, 52 22, 42 20 Z" fill="#5B9BFA"/><path d="M18 48 q4 6 8 0 q3 6 6 0 q3 6 6 0 q3 6 6 0 q4 6 6 0" fill="#5B9BFA"/><circle cx="32" cy="56" r="3" fill="#FFD54A"/><path d="M30 26 q-3 8 -3 16" stroke="#fff" stroke-width="2.4" fill="none" stroke-linecap="round" opacity=".6"/></svg>';
+      case 3: // 粉紅櫻花五瓣（瓣尖有缺口）
+        return `<svg viewBox="0 0 64 64">${Array.from({ length: 5 }, (_, i) => `<path d="M32 32 C 22 24, 22 10, 29 8 L 32 12 L 35 8 C 42 10, 42 24, 32 32 Z" fill="#FF9EB5" transform="rotate(${72 * i} 32 32)"/>`).join('')}<circle cx="32" cy="32" r="5" fill="#FF5C7A"/></svg>`;
+      case 4: // 紫色薰衣草穗
+        return '<svg viewBox="0 0 64 64"><path d="M32 60 V 14" stroke="#5DBB63" stroke-width="3" stroke-linecap="round"/><path d="M32 46 q-10 -2 -14 -10" stroke="#5DBB63" stroke-width="3" fill="none" stroke-linecap="round"/>' +
+          [10, 17, 24, 31, 38].map((y, i) => `<ellipse cx="${i % 2 ? 37 : 27}" cy="${y}" rx="6" ry="4.5" fill="#A78BFA"/><ellipse cx="${i % 2 ? 27 : 37}" cy="${y + 3}" rx="6" ry="4.5" fill="#8B6CF0"/>`).join('') +
+          '<ellipse cx="32" cy="6" rx="4" ry="4" fill="#A78BFA"/></svg>';
+      default: // 白色雛菊
+        return `<svg viewBox="0 0 64 64">${petals(12, 3.6, 10, 15, '#FFFFFF', 'stroke="#D8CBB6" stroke-width="1.2"')}<circle cx="32" cy="32" r="8" fill="#FFC23D"/></svg>`;
+    }
+  },
+  leaf: '<svg viewBox="0 0 40 40"><path d="M8 32 C 8 14, 22 6, 34 6 C 34 20, 26 34, 8 32 Z" fill="#fff" opacity=".85"/><path d="M10 30 L 30 10" stroke="#9BE07B" stroke-width="2.4" stroke-linecap="round"/></svg>',
+
+  /** 第 2 關莓果 */
+  berry(c) {
+    if (c === 'R') return '<svg viewBox="0 0 40 40"><path d="M20 37 C 8 31, 4 20, 8 13 C 12 8, 28 8, 32 13 C 36 20, 32 31, 20 37 Z" fill="#FF5C7A" stroke="#E0405F" stroke-width="1.5"/><path d="M11 10 l5 3 l4 -5 l4 5 l5 -3 l-2 6 h-14 z" fill="#43C97A"/>' +
+      [[14, 18], [20, 16], [26, 18], [12, 24], [18, 23], [24, 23], [28, 25], [16, 29], [22, 29], [20, 34]].map(([x, y]) => `<ellipse cx="${x}" cy="${y}" rx="1.2" ry="1.7" fill="#FFF1B8"/>`).join('') + '</svg>';
+    if (c === 'B') return '<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="15" fill="#5B7CFA" stroke="#4361D8" stroke-width="1.5"/><path d="M14 10 l2 5 l4 -4 l4 4 l2 -5 l1 7 h-14 z" fill="#3A4FC0"/><ellipse cx="14" cy="22" rx="3" ry="5" fill="#fff" opacity=".35" transform="rotate(20 14 22)"/></svg>';
+    return '<svg viewBox="0 0 40 40"><circle cx="20" cy="22" r="15" fill="#FFC23D" stroke="#E9A516" stroke-width="1.5"/><path d="M11 18 a10 10 0 0 1 8 -7" stroke="#fff" stroke-width="3.2" fill="none" stroke-linecap="round"/><circle cx="27" cy="27" r="2" fill="#fff" opacity=".7"/><path d="M20 7 v5" stroke="#8B5A2B" stroke-width="2.4" stroke-linecap="round"/><ellipse cx="24" cy="7" rx="4" ry="2.4" fill="#5DBB63"/></svg>';
+  },
+  rock: '<svg viewBox="0 0 40 40"><path d="M6 30 C 4 20, 12 10, 22 10 C 32 10, 37 20, 34 30 Z" fill="#A7A39B"/><path d="M6 30 h28" stroke="#8D887F" stroke-width="3" stroke-linecap="round"/><ellipse cx="16" cy="18" rx="4" ry="2.4" fill="#C9C5BD"/></svg>',
+  smallFlower(color) {
+    return `<svg class="flower" viewBox="0 0 30 30">${[0, 72, 144, 216, 288].map((a) => `<circle cx="15" cy="8" r="5" fill="${color}" transform="rotate(${a} 15 15)"/>`).join('')}<circle cx="15" cy="15" r="4" fill="#FFD54A"/></svg>`;
+  },
+  sled: '<svg viewBox="0 0 120 80"><path d="M0 70 Q 40 30 120 46 L 120 80 L 0 80 Z" fill="rgba(255,255,255,.35)"/><g transform="rotate(-12 60 45)"><path d="M22 58 h66 q10 0 12 -8" stroke="#8B4A2B" stroke-width="5" fill="none" stroke-linecap="round"/><rect x="30" y="44" width="54" height="10" rx="5" fill="#E46B47"/><circle cx="58" cy="30" r="16" fill="#FFD54A"/><circle cx="62" cy="26" r="2.6" fill="#3B2A1A"/><path d="M71 30 l8 2 l-8 3 z" fill="#FF9A3C"/><ellipse cx="63" cy="34" rx="3.5" ry="2" fill="#FF9EB5"/><path d="M57 14 q-4 -6 3 -8" stroke="#F2B600" stroke-width="3" fill="none" stroke-linecap="round"/></g></svg>',
+};
+
+/* =========================================================
+   三、本機儲存
+   ========================================================= */
+const STORE_KEY = 'chick-valley-adventure-v1';
+function defaultData() {
+  return { unlocked: 1, best: {}, muted: false, introSeen: false, rulesSeen: {},
+           endless: { bestScore: 0, bestMeters: 0, runs: 0 } };
+}
+function sanitizeData(d) {
+  const out = defaultData();
+  if (!d || typeof d !== 'object') return out;
+  if (Number.isInteger(d.unlocked)) out.unlocked = clamp(d.unlocked, 1, 5);
+  if (d.best && typeof d.best === 'object') {
+    for (const k of ['1', '2', '3', '4', '5']) {
+      const b = d.best[k];
+      if (b && Number.isInteger(b.stars) && b.stars >= 1 && b.stars <= 3 && Number.isFinite(b.value) && b.value >= 0) {
+        out.best[k] = { stars: b.stars, value: Math.round(b.value) };
+      }
+    }
+  }
+  out.muted = d.muted === true;
+  out.introSeen = d.introSeen === true;
+  if (d.rulesSeen && typeof d.rulesSeen === 'object') {
+    for (const k of ['1', '2', '3', '4', '5']) if (d.rulesSeen[k] === true) out.rulesSeen[k] = true;
+  }
+  if (d.endless && typeof d.endless === 'object') {
+    const e = d.endless;
+    if (Number.isFinite(e.bestScore) && e.bestScore >= 0) out.endless.bestScore = Math.floor(e.bestScore);
+    if (Number.isFinite(e.bestMeters) && e.bestMeters >= 0) out.endless.bestMeters = Math.floor(e.bestMeters);
+    if (Number.isInteger(e.runs) && e.runs >= 0) out.endless.runs = e.runs;
+  }
+  return out;
+}
+/** 解析儲存字串；損毀時回傳預設資料（不拋錯） */
+function parseStored(raw) {
+  if (typeof raw !== 'string' || !raw) return defaultData();
+  try { return sanitizeData(JSON.parse(raw)); } catch (e) { return defaultData(); }
+}
+const Store = {
+  ok: true,
+  data: defaultData(),
+  load() {
+    let raw = null;
+    try {
+      const t = STORE_KEY + '-test';
+      localStorage.setItem(t, '1');
+      localStorage.removeItem(t);
+      raw = localStorage.getItem(STORE_KEY);
+    } catch (e) { this.ok = false; return; }
+    this.data = parseStored(raw);
+  },
+  save() {
+    if (!this.ok) return;
+    try { localStorage.setItem(STORE_KEY, JSON.stringify(this.data)); }
+    catch (e) { this.ok = false; $('#storageNote').hidden = false; }
+  },
+  clear() {
+    this.data = defaultData();
+    try { localStorage.removeItem(STORE_KEY); } catch (e) { /* 忽略 */ }
+  },
+};
+
+/* =========================================================
+   四、音效（Web Audio API 即時合成）
+   ========================================================= */
+const Sound = {
+  ctx: null,
+  master: null,
+  init() {
+    if (this.ctx) {
+      if (this.ctx.state === 'suspended') this.ctx.resume().catch(() => {});
+      return;
+    }
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    try {
+      this.ctx = new AC();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.6;
+      this.master.connect(this.ctx.destination);
+    } catch (e) { this.ctx = null; }
+  },
+  ok() { return !!this.ctx && !Store.data.muted && this.ctx.state === 'running'; },
+  tone(freq, dur, o) {
+    if (!this.ok()) return;
+    o = o || {};
+    const t = this.ctx.currentTime + (o.when || 0);
+    const osc = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    if (o.to) osc.frequency.exponentialRampToValueAtTime(o.to, t + dur);
+    const v = o.vol || 0.1;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(v, t + 0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(this.master);
+    osc.start(t); osc.stop(t + dur + 0.03);
+  },
+  noise(dur, vol, when) {
+    if (!this.ok()) return;
+    const len = Math.max(1, Math.floor(this.ctx.sampleRate * dur));
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    const src = this.ctx.createBufferSource();
+    const g = this.ctx.createGain();
+    g.gain.value = vol;
+    src.buffer = buf; src.connect(g); g.connect(this.master);
+    src.start(this.ctx.currentTime + (when || 0));
+  },
+  pop() { this.tone(500, 0.07, { to: 900, vol: 0.06 }); },
+  flip() { this.tone(620, 0.08, { type: 'triangle', to: 980, vol: 0.05 }); },
+  match() { this.tone(784, 0.14, { type: 'triangle', vol: 0.11 }); this.tone(1046.5, 0.2, { type: 'triangle', vol: 0.11, when: 0.1 }); },
+  miss() { this.tone(262, 0.16, { vol: 0.08 }); this.tone(220, 0.2, { vol: 0.08, when: 0.12 }); },
+  pick() { this.tone(660, 0.09, { to: 990, vol: 0.07 }); },
+  drop() { this.tone(520, 0.1, { to: 300, vol: 0.09 }); },
+  invalid() { this.tone(170, 0.1, { type: 'square', vol: 0.035 }); this.tone(150, 0.12, { type: 'square', vol: 0.035, when: 0.1 }); },
+  rotate() { this.tone(1300, 0.03, { type: 'square', vol: 0.03 }); this.noise(0.03, 0.04); },
+  water() { [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => this.tone(f, 0.16, { vol: 0.08, when: i * 0.06 })); },
+  step(n) { this.tone(440 * Math.pow(2, Math.min(n, 24) / 24), 0.07, { type: 'triangle', vol: 0.07 }); },
+  mirror() { this.tone(1500, 0.03, { type: 'square', vol: 0.03 }); this.tone(900, 0.05, { type: 'triangle', vol: 0.05, when: 0.02 }); },
+  lantern() { this.tone(1318.5, 0.45, { vol: 0.07 }); this.tone(1975.5, 0.35, { vol: 0.04, when: 0.03 }); },
+  win() { [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((f, i) => this.tone(f, 0.22, { type: 'triangle', vol: 0.12, when: i * 0.1 })); },
+  star(i) { this.tone(1568 * (1 + i * 0.12), 0.18, { vol: 0.08 }); this.tone(2349 * (1 + i * 0.12), 0.12, { vol: 0.04, when: 0.04 }); },
+  collect() { this.tone(988, 0.07, { type: 'square', vol: 0.04 }); this.tone(1318.5, 0.14, { type: 'square', vol: 0.04, when: 0.07 }); },
+  perfect() { this.tone(784, 0.1, { type: 'triangle', vol: 0.1 }); this.tone(1174.7, 0.2, { type: 'triangle', vol: 0.1, when: 0.08 }); },
+  oops() { this.tone(160, 0.22, { to: 90, vol: 0.12 }); this.noise(0.08, 0.06); },
+  whoosh() { this.noise(0.12, 0.05); this.tone(420, 0.16, { type: 'triangle', to: 900, vol: 0.05 }); },
+  gameover() { [523.25, 392, 329.6, 261.6].forEach((f, i) => this.tone(f, 0.22, { type: 'triangle', vol: 0.1, when: i * 0.14 })); },
+};
+
+/* =========================================================
+   五、紙屑特效
+   ========================================================= */
+const Confetti = {
+  cv: null, ctx: null, parts: [], raf: 0, last: 0,
+  burst(n) {
+    if (reducedMotion()) return;
+    this.cv = this.cv || $('#confetti');
+    this.ctx = this.ctx || this.cv.getContext('2d');
+    const w = window.innerWidth, h = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.cv.width = w * dpr; this.cv.height = h * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const colors = ['#FF8A65', '#FFC83D', '#43C97A', '#5B9BFA', '#FF9EB5', '#A78BFA'];
+    for (let i = 0; i < n && this.parts.length < 120; i++) {
+      this.parts.push({
+        x: w / 2 + (Math.random() - 0.5) * w * 0.3, y: h * 0.32,
+        vx: (Math.random() - 0.5) * 760, vy: -280 - Math.random() * 520,
+        r: Math.random() * Math.PI, vr: (Math.random() - 0.5) * 12,
+        w: 6 + Math.random() * 6, h: 4 + Math.random() * 4,
+        c: colors[i % colors.length], life: 2.2 + Math.random() * 0.8,
+      });
+    }
+    if (!this.raf) { this.last = performance.now(); this.raf = requestAnimationFrame((t) => this.tick(t)); }
+  },
+  tick(now) {
+    const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
+    const c = this.ctx;
+    c.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const p = this.parts[i];
+      p.life -= dt;
+      if (p.life <= 0 || p.y > window.innerHeight + 20) { this.parts.splice(i, 1); continue; }
+      p.vy += 900 * dt; p.vx *= 0.99;
+      p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
+      c.save(); c.translate(p.x, p.y); c.rotate(p.r);
+      c.globalAlpha = Math.min(1, p.life);
+      c.fillStyle = p.c; c.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      c.restore();
+    }
+    if (this.parts.length) this.raf = requestAnimationFrame((t) => this.tick(t));
+    else { this.raf = 0; c.clearRect(0, 0, window.innerWidth, window.innerHeight); }
+  },
+};
+
+/* =========================================================
+   六、對話框
+   ========================================================= */
+const Modal = {
+  open(id, focusSel) {
+    const m = $('#' + id);
+    m.hidden = false;
+    const f = focusSel ? $(focusSel, m) : $('button.primary', m);
+    if (f) setTimeout(() => f.focus(), 30);
+  },
+  close(id) { $('#' + id).hidden = true; },
+  anyOpen() { return $$('.modal').some((m) => !m.hidden); },
+};
+
+/* =========================================================
+   七、通用動畫回饋（閃光粒子、重新播放 CSS 動畫）
+   ========================================================= */
+const FX = {
+  /** 重新播放某個 CSS 動畫 class */
+  pulse(el, cls) {
+    if (!el) return;
+    el.classList.remove(cls);
+    void el.getBoundingClientRect();
+    el.classList.add(cls);
+    // 動畫播完後移除 class，避免和下一個動畫衝突
+    el._fxT = el._fxT || {};
+    clearTimeout(el._fxT[cls]);
+    el._fxT[cls] = setTimeout(() => el.classList.remove(cls), 2100);
+  },
+  /** 從元素中心噴出小粒子（星星或圓點） */
+  burst(el, opts) {
+    if (!el || reducedMotion() || !document.body.animate) return;
+    const o = Object.assign({ n: 10, colors: ['#FFC83D', '#FF8A65', '#43C97A'], dist: 46, size: 9, shape: 'star' }, opts || {});
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (let i = 0; i < o.n; i++) {
+      const p = document.createElement('span');
+      const s = o.size * (0.7 + Math.random() * 0.6);
+      p.className = 'fx-p';
+      p.style.cssText = `left:${cx - s / 2}px;top:${cy - s / 2}px;width:${s}px;height:${s}px;background:${o.colors[i % o.colors.length]};` +
+        (o.shape === 'star' ? 'clip-path:polygon(50% 0,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);' : 'border-radius:50%;');
+      document.body.appendChild(p);
+      const a = (Math.PI * 2 * i) / o.n + Math.random() * 0.5;
+      const d = o.dist * (0.6 + Math.random() * 0.6);
+      const anim = p.animate([
+        { transform: 'translate(0,0) scale(1)', opacity: 1 },
+        { transform: `translate(${Math.cos(a) * d}px, ${Math.sin(a) * d}px) scale(.3) rotate(120deg)`, opacity: 0 },
+      ], { duration: 520 + Math.random() * 200, easing: 'cubic-bezier(.2,.7,.3,1)' });
+      anim.onfinish = () => p.remove();
+      setTimeout(() => p.remove(), 1000);
+    }
+  },
+};
+
+/* 題庫：每一題都已用 BFS／DFS 驗證可解，opt／min 為最少步數 */
+const PUZZLES = {
+  berry: [
+    {"tubes": [["Y", "R", "Y", "R"], ["B", "Y", "B", "Y"], ["R", "R", "B", "B"], [], []], "opt": 10},
+    {"tubes": [["R", "B", "Y", "R"], ["Y", "Y", "B", "R"], ["B", "Y", "R", "B"], [], []], "opt": 10},
+    {"tubes": [["R", "Y", "Y", "R"], ["R", "Y", "B", "B"], ["R", "Y", "B", "B"], [], []], "opt": 11},
+    {"tubes": [["R", "Y", "B", "Y"], ["R", "Y", "B", "B"], ["Y", "R", "R", "B"], [], []], "opt": 11},
+    {"tubes": [["B", "Y", "R", "Y"], ["R", "B", "R", "Y"], ["Y", "R", "B", "B"], [], []], "opt": 11},
+    {"tubes": [["Y", "R", "Y", "R"], ["R", "R", "B", "B"], ["Y", "B", "B", "Y"], [], []], "opt": 10},
+  ],
+  pipe: [
+    {"grid": ["L0 L0 L2 L0 L2", "L1 I1 L0 L0 L2", "L2 L2 L2 I3 L3", "L0 L2 T3 L3 L2"], "entry": 1, "exit": 2, "solution": [[1, 0, 12], [2, 0, 3], [2, 1, 12], [3, 1, 3], [3, 2, 10], [3, 3, 9], [2, 3, 5], [1, 3, 6], [1, 4, 12], [2, 4, 3]], "min": 8},
+    {"grid": ["I0 L1 I0 L2 I0", "L1 I1 L0 L3 L1", "L0 L3 L2 L3 L0", "T3 I2 T3 L3 L2"], "entry": 0, "exit": 3, "solution": [[0, 0, 10], [0, 1, 12], [1, 1, 5], [2, 1, 3], [2, 2, 12], [3, 2, 3], [3, 3, 9], [2, 3, 6], [2, 4, 12], [3, 4, 3]], "min": 10},
+    {"grid": ["I0 T2 L0 I3 I0", "L2 T2 I2 T1 T3", "L0 I2 L3 L3 L3", "I0 I0 I3 L1 L0"], "entry": 3, "exit": 0, "solution": [[3, 0, 10], [3, 1, 10], [3, 2, 10], [3, 3, 9], [2, 3, 12], [2, 2, 3], [1, 2, 5], [0, 2, 6], [0, 3, 10], [0, 4, 10]], "min": 10},
+    {"grid": ["T2 T1 L3 I3 L0", "L3 L1 I1 L1 L1", "L2 I1 I3 T1 L0", "L3 L2 L0 I0 I2"], "entry": 2, "exit": 1, "solution": [[2, 0, 12], [3, 0, 3], [3, 1, 9], [2, 1, 5], [1, 1, 6], [1, 2, 10], [1, 3, 12], [2, 3, 3], [2, 4, 9], [1, 4, 6]], "min": 9},
+    {"grid": ["L1 I3 L2 I3 L3", "I0 L0 L1 L1 L1", "T3 L3 I2 L1 I0", "L1 L2 T2 L2 L3"], "entry": 1, "exit": 1, "solution": [[1, 0, 10], [1, 1, 12], [2, 1, 3], [2, 2, 10], [2, 3, 12], [3, 3, 3], [3, 4, 9], [2, 4, 5], [1, 4, 6]], "min": 8},
+    {"grid": ["L3 T3 I2 L3 L3", "L0 L3 L2 L2 I3", "I2 L0 I3 T0 L1", "I3 I0 L2 T1 T3"], "entry": 3, "exit": 2, "solution": [[3, 0, 10], [3, 1, 10], [3, 2, 9], [2, 2, 5], [1, 2, 6], [1, 3, 12], [2, 3, 5], [3, 3, 3], [3, 4, 9], [2, 4, 6]], "min": 8},
+  ],
+  stroke: [
+    {"rocks": [[0, 2], [1, 3], [3, 2]], "start": [2, 2], "solution": [[2, 2], [1, 2], [1, 1], [0, 1], [0, 0], [1, 0], [2, 0], [2, 1], [3, 1], [3, 0], [4, 0], [4, 1], [4, 2], [4, 3], [4, 4], [3, 4], [3, 3], [2, 3], [2, 4], [1, 4], [0, 4], [0, 3]]},
+    {"rocks": [[1, 3], [2, 1], [2, 4]], "start": [0, 0], "solution": [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [4, 1], [3, 1], [3, 2], [4, 2], [4, 3], [4, 4], [3, 4], [3, 3], [2, 3], [2, 2], [1, 2], [1, 1], [0, 1], [0, 2], [0, 3], [0, 4], [1, 4]]},
+    {"rocks": [[2, 1], [2, 2], [2, 4]], "start": [4, 4], "solution": [[4, 4], [3, 4], [3, 3], [2, 3], [1, 3], [1, 4], [0, 4], [0, 3], [0, 2], [1, 2], [1, 1], [0, 1], [0, 0], [1, 0], [2, 0], [3, 0], [4, 0], [4, 1], [3, 1], [3, 2], [4, 2], [4, 3]]},
+    {"rocks": [[2, 3], [3, 3], [4, 0]], "start": [2, 0], "solution": [[2, 0], [3, 0], [3, 1], [4, 1], [4, 2], [3, 2], [2, 2], [2, 1], [1, 1], [1, 0], [0, 0], [0, 1], [0, 2], [1, 2], [1, 3], [0, 3], [0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [4, 3]]},
+    {"rocks": [[0, 0], [2, 0], [2, 3]], "start": [0, 4], "solution": [[0, 4], [1, 4], [2, 4], [3, 4], [4, 4], [4, 3], [3, 3], [3, 2], [4, 2], [4, 1], [4, 0], [3, 0], [3, 1], [2, 1], [2, 2], [1, 2], [1, 3], [0, 3], [0, 2], [0, 1], [1, 1], [1, 0]]},
+    {"rocks": [[0, 2], [1, 3], [3, 2]], "start": [4, 2], "solution": [[4, 2], [4, 1], [4, 0], [3, 0], [3, 1], [2, 1], [2, 0], [1, 0], [0, 0], [0, 1], [1, 1], [1, 2], [2, 2], [2, 3], [3, 3], [4, 3], [4, 4], [3, 4], [2, 4], [1, 4], [0, 4], [0, 3]]},
+  ],
+  mirror: [
+    {"source": 5, "lanterns": [[1, 5], [3, 0], [3, 4]], "rocks": [[4, 2], [5, 4]], "mirrors": [[2, 4, "/", "\\"], [4, 4, "/", "\\"], [2, 0, "\\", "/"], [4, 5, "\\", "/"], [5, 1, "/", "/"], [0, 1, "/", "/"], [0, 5, "\\", "\\"]], "min": 4},
+    {"source": 0, "lanterns": [[2, 1], [3, 2], [5, 2]], "rocks": [[0, 3], [3, 3]], "mirrors": [[3, 0, "\\", "/"], [0, 1, "\\", "\\"], [4, 5, "/", "\\"], [5, 0, "/", "\\"], [5, 5, "\\", "/"], [4, 1, "\\", "\\"]], "min": 4},
+    {"source": 4, "lanterns": [[1, 1], [3, 5], [4, 1]], "rocks": [[3, 1], [5, 1]], "mirrors": [[4, 3, "/", "/"], [2, 1, "/", "\\"], [0, 3, "/", "\\"], [2, 4, "/", "\\"], [3, 4, "/", "\\"], [0, 1, "/", "/"]], "min": 4},
+    {"source": 5, "lanterns": [[2, 0], [2, 1], [2, 4]], "rocks": [[0, 1], [0, 5]], "mirrors": [[4, 2, "/", "\\"], [5, 3, "/", "/"], [0, 3, "/", "\\"], [2, 5, "/", "\\"], [0, 2, "\\", "/"], [2, 3, "/", "/"], [4, 5, "/", "/"]], "min": 4},
+    {"source": 2, "lanterns": [[0, 4], [1, 5], [2, 5]], "rocks": [[4, 0], [5, 5]], "mirrors": [[4, 1, "/", "\\"], [0, 1, "\\", "/"], [1, 2, "/", "/"], [1, 3, "\\", "\\"], [0, 5, "/", "\\"], [2, 2, "/", "/"], [4, 3, "\\", "/"]], "min": 4},
+    {"source": 0, "lanterns": [[2, 3], [3, 1], [5, 2]], "rocks": [[2, 1], [4, 5]], "mirrors": [[5, 0, "\\", "\\"], [0, 4, "/", "\\"], [3, 3, "\\", "/"], [0, 0, "\\", "\\"], [5, 4, "\\", "/"], [0, 3, "\\", "/"]], "min": 4},
+  ],
+};
+
+/* =========================================================
+   七、關卡資料與規則（純邏輯，與畫面分離；遊玩與自我測試共用）
+   第 2～5 關每次從題庫隨機抽一題，星等門檻依該題最少步數計算
+   ========================================================= */
+
+const LEVEL_DEFS = [
+  { id: 1, key: 'memory', name: '花田記憶', counter: '翻牌次數', unit: '次', canUndo: false,
+    undoOff: '這關不能復原',
+    story: '幫啾啾找出花田裡成對的花！',
+    rule: '點兩張牌把它們翻開，花一樣就配對成功。開場會先讓你看 2 秒，記住位置！',
+    thresholds() { return [9, 13]; } },
+  { id: 2, key: 'berry', name: '莓果分類', counter: '步數', unit: '步', canUndo: true,
+    story: '莓果混在一起了，幫啾啾把同色莓果放進同一個籃子！',
+    rule: '點一個籃子拿起最上面的莓果，再點另一個籃子放進去。只能放進空籃子或同色莓果上面，每籃最多 4 顆。',
+    thresholds(p) { return [p.opt + 2, p.opt + 8]; } },
+  { id: 3, key: 'pipe', name: '引水灌溉', counter: '旋轉次數', unit: '次', canUndo: true,
+    story: '轉動水道，把小溪的水引到菜園！',
+    rule: '點水道會順時針轉 90°。讓水從左邊的小溪，一路流到右邊的菜園。',
+    thresholds(p) { return [p.min + 2, p.min + 8]; } },
+  { id: 4, key: 'stroke', name: '草地散步', counter: '秒數', unit: '秒', canUndo: true,
+    story: '帶啾啾走過每一格草地，但同一格不能走兩次喔！',
+    rule: '從啾啾的位置按住拖曳、點旁邊的格子，或用方向鍵／WASD 一路走。石頭不能走，走錯可以退回上一格。',
+    thresholds() { return [40, 80]; } },
+  { id: 5, key: 'mirror', name: '螢火蟲燈籠', counter: '翻轉次數', unit: '次', canUndo: true,
+    story: '天黑了！轉動鏡子，把月光送到每一盞燈籠。',
+    rule: '點鏡子可以切換方向，讓月光經過三盞燈籠。石頭會擋住光。',
+    thresholds(p) { return [p.min + 1, p.min + 5]; } },
+];
+
+/** 星等：依門檻計算，用過提示最高 2 星 */
+function calcStars(th, value, hintUsed) {
+  let s = value <= th[0] ? 3 : (value <= th[1] ? 2 : 1);
+  if (hintUsed) s = Math.min(s, 2);
+  return s;
+}
+
+/* ---------- 第 1 關：記憶翻牌 ---------- */
+const MemoryLogic = {
+  PAIRS: 6,
+  makeDeck(rand) {
+    const r = rand || Math.random;
+    const deck = [];
+    for (let i = 0; i < this.PAIRS; i++) deck.push(i, i);
+    for (let i = deck.length - 1; i > 0; i--) {           // Fisher–Yates
+      const j = Math.floor(r() * (i + 1));
+      const t = deck[i]; deck[i] = deck[j]; deck[j] = t;
+    }
+    return deck;
+  },
+};
+
+/* ---------- 第 2 關：莓果分類 ---------- */
+const BerryLogic = {
+  CAP: 4,
+  initState(p) { return p.tubes.map((t) => t.slice()); },
+  clone(s) { return s.map((t) => t.slice()); },
+  canMove(s, i, j) {
+    if (i === j || !s[i] || !s[j] || !s[i].length) return false;
+    if (s[j].length >= this.CAP) return false;
+    return s[j].length === 0 || s[j][s[j].length - 1] === s[i][s[i].length - 1];
+  },
+  move(s, i, j) {
+    const n = this.clone(s);
+    n[j].push(n[i].pop());
+    return n;
+  },
+  isFull(t) { return t.length === this.CAP && t.every((c) => c === t[0]); },
+  isSolved(s) { return s.every((t) => t.length === 0 || this.isFull(t)); },
+  key(s) { return s.map((t) => t.join('')).join('|'); },
+  /** BFS 求目前盤面的最短解，回傳移動序列 [[i, j], ...]；無解回傳 null */
+  solve(start) {
+    const k0 = this.key(start);
+    const prev = new Map([[k0, null]]);
+    const states = new Map([[k0, start]]);
+    const queue = [k0];
+    for (let qi = 0; qi < queue.length; qi++) {
+      const k = queue[qi];
+      const s = states.get(k);
+      if (this.isSolved(s)) {
+        const path = [];
+        let cur = k;
+        while (prev.get(cur)) { const p = prev.get(cur); path.push(p.move); cur = p.from; }
+        return path.reverse();
+      }
+      for (let i = 0; i < s.length; i++) {
+        for (let j = 0; j < s.length; j++) {
+          if (!this.canMove(s, i, j)) continue;
+          const n = this.move(s, i, j);
+          const nk = this.key(n);
+          if (!prev.has(nk)) { prev.set(nk, { from: k, move: [i, j] }); states.set(nk, n); queue.push(nk); }
+        }
+      }
+    }
+    return null;
+  },
+};
+
+/* ---------- 第 3 關：水管旋轉 ---------- */
+const DIR = { N: 1, E: 2, S: 4, W: 8 };
+const DIR_VEC = { 1: [-1, 0], 2: [0, 1], 4: [1, 0], 8: [0, -1] };
+const DIR_OPP = { 1: 4, 4: 1, 2: 8, 8: 2 };
+const PipeLogic = {
+  ROWS: 4, COLS: 5,
+  BASE: { I: DIR.N | DIR.S, L: DIR.N | DIR.E, T: DIR.N | DIR.E | DIR.S },
+  parse(p) { return p.grid.map((row) => row.split(' ').map((s) => ({ t: s[0], r: Number(s[1]) }))); },
+  /** 順時針旋轉開口遮罩 k 次 */
+  rotMask(m, k) {
+    let x = m;
+    for (let i = 0; i < ((k % 4) + 4) % 4; i++) x = ((x << 1) | (x >> 3)) & 15;
+    return x;
+  },
+  open(tile) { return this.rotMask(this.BASE[tile.t], tile.r); },
+  /** 從入口做流水搜尋：回傳有水的格子與是否接通 */
+  flood(grid, p) {
+    const wet = new Set();
+    const er = p.entry, xr = p.exit, xc = this.COLS - 1;
+    if (!(this.open(grid[er][0]) & DIR.W)) return { wet, connected: false };
+    const stack = [[er, 0]];
+    wet.add(er + ',0');
+    let connected = false;
+    while (stack.length) {
+      const [r, c] = stack.pop();
+      const m = this.open(grid[r][c]);
+      if (r === xr && c === xc && (m & DIR.E)) connected = true;
+      for (const d of [1, 2, 4, 8]) {
+        if (!(m & d)) continue;
+        const nr = r + DIR_VEC[d][0], nc = c + DIR_VEC[d][1];
+        if (nr < 0 || nr >= this.ROWS || nc < 0 || nc >= this.COLS) continue;
+        const k = nr + ',' + nc;
+        if (wet.has(k)) continue;
+        if (!(this.open(grid[nr][nc]) & DIR_OPP[d])) continue;
+        wet.add(k);
+        stack.push([nr, nc]);
+      }
+    }
+    return { wet, connected };
+  },
+  /** 順時針轉幾下才會包含所需開口 */
+  clicksTo(tile, need) {
+    for (let k = 0; k < 4; k++) if ((this.rotMask(this.BASE[tile.t], tile.r + k) & need) === need) return k;
+    return -1;
+  },
+  hint(grid, p) {
+    for (const [r, c, need] of p.solution) {
+      const k = this.clicksTo(grid[r][c], need);
+      if (k > 0) return { r, c, clicks: k };
+    }
+    return null;
+  },
+};
+
+/* ---------- 第 4 關：一筆畫 ---------- */
+const StrokeLogic = {
+  ROWS: 5, COLS: 5,
+  total(p) { return this.ROWS * this.COLS - p.rocks.length; },
+  isRock(p, r, c) { return p.rocks.some(([a, b]) => a === r && b === c); },
+  inside(r, c) { return r >= 0 && r < this.ROWS && c >= 0 && c < this.COLS; },
+  indexOf(path, r, c) { return path.findIndex(([a, b]) => a === r && b === c); },
+  /** 判斷一格對目前路線的意義：'extend' 前進、'back' 退回前一格、'invalid' 無效 */
+  classify(p, path, r, c) {
+    const [lr, lc] = path[path.length - 1];
+    if (path.length > 1) {
+      const [pr, pc] = path[path.length - 2];
+      if (pr === r && pc === c) return 'back';
+    }
+    if (!this.inside(r, c) || this.isRock(p, r, c)) return 'invalid';
+    if (Math.abs(lr - r) + Math.abs(lc - c) !== 1) return 'invalid';
+    if (this.indexOf(path, r, c) >= 0) return 'invalid';
+    return 'extend';
+  },
+  /** DFS：從目前路線找出一種走完的方法（找不到回傳 null） */
+  complete(p, path) {
+    const seen = new Set(path.map(([r, c]) => r * 10 + c));
+    const q = path.slice();
+    const total = this.total(p);
+    const dfs = () => {
+      if (q.length === total) return true;
+      const [r, c] = q[q.length - 1];
+      for (const [dr, dc] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
+        const nr = r + dr, nc = c + dc;
+        if (!this.inside(nr, nc) || this.isRock(p, nr, nc) || seen.has(nr * 10 + nc)) continue;
+        seen.add(nr * 10 + nc); q.push([nr, nc]);
+        if (dfs()) return true;
+        seen.delete(nr * 10 + nc); q.pop();
+      }
+      return false;
+    };
+    return dfs() ? q : null;
+  },
+  /** 提示：能走完就指出下一格；不能就找出應該退回第幾格（1 = 起點） */
+  hint(p, path) {
+    const done = this.complete(p, path);
+    if (done) return done.length > path.length ? { type: 'next', cell: done[path.length] } : null;
+    for (let k = path.length - 1; k >= 1; k--) {
+      if (this.complete(p, path.slice(0, k))) return { type: 'back', n: k, cell: path[k - 1] };
+    }
+    return { type: 'back', n: 1, cell: path[0] };
+  },
+};
+
+/* ---------- 第 5 關：光線反射 ---------- */
+const MirrorLogic = {
+  SIZE: 6,
+  SLASH: { E: 'N', N: 'E', W: 'S', S: 'W' },
+  BACK: { E: 'S', S: 'E', W: 'N', N: 'W' },
+  VEC: { N: [-1, 0], E: [0, 1], S: [1, 0], W: [0, -1] },
+  initState(p) { return p.mirrors.map((m) => m[2]); },
+  solState(p) { return p.mirrors.map((m) => m[3]); },
+  mirrorAt(p, r, c) { return p.mirrors.findIndex((m) => m[0] === r && m[1] === c); },
+  isRock(p, r, c) { return p.rocks.some(([a, b]) => a === r && b === c); },
+  lanternAt(p, r, c) { return p.lanterns.findIndex(([a, b]) => a === r && b === c); },
+  /** 追蹤光線：回傳經過的格子、點亮的燈籠與最後方向 */
+  trace(p, state) {
+    let r = p.source, c = 0, d = 'E';
+    const path = [];
+    const lit = new Set();
+    for (let steps = 0; steps < 200; steps++) {
+      if (r < 0 || r >= this.SIZE || c < 0 || c >= this.SIZE) break;
+      if (this.isRock(p, r, c)) break;
+      path.push([r, c]);
+      const li = this.lanternAt(p, r, c);
+      if (li >= 0) lit.add(li);
+      const mi = this.mirrorAt(p, r, c);
+      if (mi >= 0) d = state[mi] === '/' ? this.SLASH[d] : this.BACK[d];
+      r += this.VEC[d][0]; c += this.VEC[d][1];
+    }
+    return { path, lit, dir: d };
+  },
+  allLit(p, state) { return this.trace(p, state).lit.size === p.lanterns.length; },
+  /** 提示：依正確解光線經過鏡子的順序，找第一面方向不對的鏡子 */
+  hint(p, state) {
+    const order = [];
+    for (const [r, c] of this.trace(p, this.solState(p)).path) {
+      const mi = this.mirrorAt(p, r, c);
+      if (mi >= 0 && !order.includes(mi)) order.push(mi);
+    }
+    const wrong = order.find((mi) => state[mi] !== p.mirrors[mi][3]);
+    return wrong === undefined ? null : wrong;
+  },
+};
+
+/* =========================================================
+   八、關卡畫面（每關一個 create 函式；規則判定呼叫上面的 Logic）
+   每個關卡物件提供：start / hint / undo / reset / resize / destroy
+   ========================================================= */
+
+const FLOWER_NAMES = ['紅色圓瓣花', '黃色向日葵', '藍色鈴鐺花', '粉紅櫻花', '紫色薰衣草', '白色雛菊'];
+const FLOWER_COLORS = [['#FF5C7A', '#FFD54A'], ['#FFC23D', '#8B5A2B'], ['#5B9BFA', '#BFD7FF'], ['#FF9EB5', '#FF5C7A'], ['#A78BFA', '#8B6CF0'], ['#FFFFFF', '#FFC23D']];
+const BERRY_NAMES = { R: '草莓', B: '藍莓', Y: '黃金莓' };
+const BERRY_COLORS = { R: '#FF5C7A', B: '#5B7CFA', Y: '#FFC23D' };
+
+/* ---------- 第 1 關：花田記憶 ---------- */
+function createMemoryLevel(api) {
+  const def = LEVEL_DEFS[0];
+  const grid = document.createElement('div');
+  grid.className = 'mem-grid';
+  api.board.appendChild(grid);
+  let deck = [], cards = [], open = [], matched = new Set(), turns = 0, lock = true;
+
+  function resize() {
+    const w = api.availWidth();
+    const cw = Math.floor(clamp((w - 30) / 4, 60, 112));
+    grid.style.setProperty('--card-w', cw + 'px');
+  }
+  function setUp(i, up) {
+    cards[i].classList.toggle('up', up);
+    cards[i].setAttribute('aria-label', up ? '花牌：' + FLOWER_NAMES[deck[i]] : '蓋著的花牌');
+  }
+  function build() {
+    deck = MemoryLogic.makeDeck();
+    grid.innerHTML = '';
+    cards = deck.map((type, i) => {
+      const b = document.createElement('button');
+      b.className = 'card3d';
+      b.innerHTML = `<div class="inner"><div class="face back">${Art.leaf}</div><div class="face front">${Art.flower(type)}</div></div>`;
+      b.addEventListener('click', () => onCard(i));
+      grid.appendChild(b);
+      return b;
+    });
+    cards.forEach((_, i) => setUp(i, false));
+  }
+  function start() {
+    lock = true;
+    cards.forEach((c, i) => api.timers.set(() => { setUp(i, true); FX.pulse(c, 'popflip'); }, i * 45));
+    api.say('先記住花的位置！2 秒後就會蓋起來喔。');
+    api.timers.set(() => {
+      cards.forEach((c, i) => api.timers.set(() => setUp(i, false), i * 30));
+      api.timers.set(() => { lock = false; api.say(def.story); }, 12 * 30 + 380);
+    }, 2400);
+  }
+  function onCard(i) {
+    if (lock || matched.has(i) || open.includes(i)) return;
+    setUp(i, true);
+    FX.pulse(cards[i], 'popflip');
+    api.sfx.flip();
+    open.push(i);
+    if (open.length < 2) return;
+    turns += 1;
+    api.setCount(turns);
+    const [a, b] = open;
+    open = [];
+    if (deck[a] === deck[b]) {
+      matched.add(a); matched.add(b);
+      api.timers.set(() => {
+        cards[a].classList.add('matched'); cards[b].classList.add('matched');
+        FX.burst(cards[a], { colors: FLOWER_COLORS[deck[a]], n: 9 });
+        FX.burst(cards[b], { colors: FLOWER_COLORS[deck[b]], n: 9 });
+        api.sfx.match();
+      }, 360);
+      if (matched.size === deck.length) {
+        lock = true;
+        api.say('全部配對完成！花田好漂亮～');
+        api.timers.set(() => {
+          cards.forEach((c, k) => api.timers.set(() => { FX.pulse(c, 'win'); }, k * 50));
+        }, 600);
+        api.timers.set(() => api.win(turns), 1400);
+      } else {
+        api.say(`找到${FLOWER_NAMES[deck[a]]}了！還有 ${(deck.length - matched.size) / 2} 組。`);
+      }
+    } else {
+      lock = true;
+      api.timers.set(() => { api.sfx.miss(); FX.pulse(cards[a], 'nope'); FX.pulse(cards[b], 'nope'); }, 380);
+      api.timers.set(() => { setUp(a, false); setUp(b, false); lock = false; }, 900);
+      api.say('不一樣，再想想剛剛看到的位置～');
+    }
+  }
+  function hint() {
+    if (lock) { api.say('等牌翻好再用提示喔。'); return false; }
+    lock = true;
+    const shown = [];
+    cards.forEach((_, i) => { if (!matched.has(i) && !open.includes(i)) { setUp(i, true); shown.push(i); } });
+    api.say('偷看 1 秒，快記住！');
+    api.timers.set(() => { shown.forEach((i) => setUp(i, false)); api.timers.set(() => { lock = false; }, 360); }, 1000);
+    return true;
+  }
+  function reset() {
+    open = []; matched = new Set(); turns = 0; lock = true;
+    build(); resize();
+  }
+  build(); resize();
+  return { start, hint, undo() {}, reset, resize, destroy() { grid.remove(); } };
+}
+
+/* ---------- 第 2 關：莓果分類 ---------- */
+function createBerryLevel(api) {
+  const P = api.puzzle;
+  const root = document.createElement('div');
+  root.className = 'baskets';
+  api.board.appendChild(root);
+  let state, sel = -1, history = [], moves = 0, lock = false, baskets = [];
+
+  function resize() {
+    const w = api.availWidth();
+    const gap = Math.round(clamp(w * 0.03, 8, 16));
+    const bw = Math.floor(clamp((w - gap * 4) / 5, 52, 84));
+    root.style.setProperty('--bw', bw + 'px');
+    root.style.setProperty('--gap', gap + 'px');
+    render();
+  }
+  function build() {
+    root.innerHTML = '';
+    baskets = state.map((_, i) => {
+      const b = document.createElement('button');
+      b.className = 'basket';
+      b.innerHTML = `<div class="jar"></div><span class="tag">籃 ${i + 1}</span>`;
+      b.addEventListener('click', () => onBasket(i));
+      root.appendChild(b);
+      return b;
+    });
+  }
+  function render() {
+    const bw = parseFloat(root.style.getPropertyValue('--bw')) || 70;
+    state.forEach((tube, i) => {
+      const jar = baskets[i].querySelector('.jar');
+      jar.innerHTML = tube.map((c, j) => {
+        const lift = i === sel && j === tube.length - 1 ? ' lift' : '';
+        return `<div class="berry${lift}" style="bottom:${6 + j * bw * 0.86}px">${Art.berry(c)}</div>`;
+      }).join('');
+      baskets[i].classList.toggle('sel', i === sel);
+      baskets[i].classList.toggle('full', BerryLogic.isFull(tube));
+      const desc = tube.length ? tube.map((c) => BERRY_NAMES[c]).join('、') : '空的';
+      baskets[i].setAttribute('aria-label', `籃 ${i + 1}：${desc}（由下到上）`);
+    });
+  }
+  function topEl(i) { const els = baskets[i].querySelectorAll('.berry'); return els[els.length - 1]; }
+  function onBasket(i) {
+    if (lock) return;
+    if (sel < 0) {
+      if (!state[i].length) { FX.pulse(baskets[i], 'shake'); return; }
+      sel = i; api.sfx.pick(); render(); return;
+    }
+    if (sel === i) { sel = -1; render(); return; }
+    if (!BerryLogic.canMove(state, sel, i)) {
+      api.sfx.invalid();
+      FX.pulse(topEl(sel), 'shake');
+      FX.pulse(baskets[i], 'nope');
+      api.say(state[i].length >= BerryLogic.CAP ? '這個籃子滿了！' : '只能放進空籃子，或疊在同色莓果上喔。');
+      return;
+    }
+    doMove(sel, i, true);
+  }
+  function doMove(from, to, record) {
+    const fromEl = topEl(from);
+    const r0 = fromEl ? fromEl.getBoundingClientRect() : null;
+    const wasFull = BerryLogic.isFull(state[to]);
+    state = BerryLogic.move(state, from, to);
+    if (record) { history.push([from, to]); moves += 1; api.setCount(moves); }
+    sel = -1;
+    render();
+    const toEl = topEl(to);
+    const land = () => {
+      api.sfx.drop();
+      if (toEl) { FX.pulse(toEl, 'land'); }
+      if (record && !wasFull && BerryLogic.isFull(state[to])) {
+        FX.pulse(baskets[to], 'done');
+        FX.burst(baskets[to], { colors: [BERRY_COLORS[state[to][0]], '#FFC83D', '#fff'], n: 12, dist: 60 });
+        api.sfx.match();
+        api.say(`${BERRY_NAMES[state[to][0]]}籃裝滿了！`);
+      }
+      afterMove();
+    };
+    if (!r0 || !toEl || !document.body.animate) { land(); return; }
+    const r1 = toEl.getBoundingClientRect();
+    toEl.style.visibility = 'hidden';
+    const fly = document.createElement('div');
+    fly.className = 'flyer';
+    fly.style.cssText = `left:${r0.left}px;top:${r0.top}px;width:${r0.width}px;height:${r0.height}px`;
+    fly.innerHTML = toEl.innerHTML;
+    document.body.appendChild(fly);
+    lock = true;
+    const dx = r1.left - r0.left, dy = r1.top - r0.top;
+    const peak = Math.min(0, dy) - 54;
+    const dur = reducedMotion() ? 100 : 320;
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      fly.remove(); toEl.style.visibility = ''; lock = false; land();
+    };
+    const anim = fly.animate([
+      { transform: 'translate(0,0) rotate(0deg) scale(1)' },
+      { transform: `translate(${dx / 2}px, ${peak}px) rotate(${dx > 0 ? 160 : -160}deg) scale(1.12)` },
+      { transform: `translate(${dx}px, ${dy}px) rotate(${dx > 0 ? 360 : -360}deg) scale(1)` },
+    ], { duration: dur, easing: 'ease-in-out' });
+    anim.onfinish = done;
+    api.timers.set(done, dur + 200);
+  }
+  function afterMove() {
+    if (!BerryLogic.isSolved(state)) return;
+    lock = true;
+    api.say('分好了！三籃莓果整整齊齊～');
+    state.forEach((t, i) => { if (t.length) api.timers.set(() => { FX.pulse(baskets[i], 'done'); FX.burst(baskets[i], { n: 8 }); }, 200 + i * 160); });
+    api.timers.set(() => api.win(moves), 1000);
+  }
+  function hint() {
+    if (lock) return false;
+    const sol = BerryLogic.solve(state);
+    if (!sol || !sol.length) { api.say('這個盤面卡住了，按「復原」退回幾步看看。'); return false; }
+    const [i, j] = sol[0];
+    sel = -1; render();
+    FX.pulse(baskets[i], 'flash'); FX.pulse(baskets[j], 'flash');
+    api.say(`把籃 ${i + 1} 最上面的莓果移到籃 ${j + 1}。`);
+    return true;
+  }
+  function undo() {
+    if (lock) return;
+    if (!history.length) { api.say('還沒有可以復原的步驟喔。'); return; }
+    const [from, to] = history.pop();
+    moves -= 1; api.setCount(moves);
+    sel = -1;
+    doMove(to, from, false);   // 撤回：直接把莓果放回原本的籃子
+    api.say('退回一步。');
+  }
+  function reset() {
+    state = BerryLogic.initState(P); sel = -1; history = []; moves = 0; lock = false;
+    build(); resize();
+  }
+  reset();
+  return { start() { api.say(LEVEL_DEFS[1].story); }, hint, undo, reset, resize, destroy() { root.remove(); } };
+}
+
+/* ---------- 第 3 關：引水灌溉 ---------- */
+function pipeTileSVG(type) {
+  const ends = { 1: [50, 0], 2: [100, 50], 4: [50, 100], 8: [0, 50] };
+  const mask = PipeLogic.BASE[type];
+  const lines = [1, 2, 4, 8].filter((d) => mask & d).map((d) => `<line x1="50" y1="50" x2="${ends[d][0]}" y2="${ends[d][1]}"/>`).join('');
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+    <g stroke="#B9895A" stroke-width="34" stroke-linecap="butt">${lines}</g><circle cx="50" cy="50" r="17" fill="#B9895A"/>
+    <g class="ch-bed" stroke-width="22" stroke-linecap="butt">${lines}</g><circle cx="50" cy="50" r="11" fill="#FFF1D6"/>
+    <g class="ch-water" stroke-width="13" stroke-linecap="butt">${lines}</g><circle class="ch-water-c" cx="50" cy="50" r="6.5"/>
+    <g class="ch-flow" stroke-width="3" stroke-linecap="round">${lines}</g>
+  </svg>`;
+}
+function createPipeLevel(api) {
+  const P = api.puzzle;
+  const wrap = document.createElement('div');
+  wrap.className = 'pipe-board';
+  api.board.appendChild(wrap);
+  let grid, angles, history = [], count = 0, lock = false, tiles = [], wetPrev = new Set();
+  const R = PipeLogic.ROWS, C = PipeLogic.COLS;
+
+  function resize() {
+    const w = api.availWidth();
+    // 總寬 = 2 × 側欄(0.75 格) + 5 格 + 6 個間距
+    const cell = Math.floor(clamp((w - 24) / 6.5, 44, 76));
+    const side = Math.round(cell * 0.75);
+    wrap.style.cssText = `display:grid;grid-template-columns:${side}px repeat(${C}, ${cell}px) ${side}px;gap:4px;--cell:${cell}px`;
+  }
+  function build() {
+    wrap.innerHTML = '';
+    tiles = [];
+    for (let r = 0; r < R; r++) {
+      const L = document.createElement('div');
+      L.className = 'pipe-side';
+      if (r === P.entry) L.innerHTML = '<svg viewBox="0 0 60 80" aria-hidden="true"><rect x="2" y="14" width="58" height="46" rx="14" fill="#4FC3F7"/><path class="stream-wave" d="M8 30 q7 -5 14 0 t14 0 M12 45 q7 -5 14 0 t14 0" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".85"/><rect x="40" y="33" width="20" height="14" fill="#4FC3F7"/><text x="31" y="77" text-anchor="middle" font-size="14" font-weight="800" fill="#2E8BC0">小溪</text></svg>';
+      wrap.appendChild(L);
+      tiles.push([]);
+      for (let c = 0; c < C; c++) {
+        const b = document.createElement('button');
+        b.className = 'tile';
+        b.innerHTML = pipeTileSVG(grid[r][c].t);
+        b.setAttribute('aria-label', `水道（第 ${r + 1} 列第 ${c + 1} 欄）`);
+        b.addEventListener('click', () => rotate(r, c, true));
+        wrap.appendChild(b);
+        tiles[r].push(b);
+      }
+      const Rt = document.createElement('div');
+      Rt.className = 'pipe-side';
+      if (r === P.exit) {
+        Rt.innerHTML = `<svg viewBox="0 0 60 80" aria-hidden="true"><rect x="0" y="32" width="22" height="16" fill="#B9895A"/><rect class="garden-water" x="0" y="35" width="22" height="10" fill="#FFF1D6"/><rect x="14" y="8" width="44" height="60" rx="12" fill="#8B5A2B"/>
+          ${[22, 40, 58].map((y, i) => `<g class="sprout" style="transition-delay:${i * 0.12}s"><path d="M36 ${y + 6} v-9" stroke="#43C97A" stroke-width="3"/><ellipse cx="30" cy="${y - 4}" rx="6" ry="3.4" fill="#43C97A"/><ellipse cx="42" cy="${y - 5}" rx="6" ry="3.4" fill="#5DBB63"/></g>`).join('')}
+          <text x="36" y="78" text-anchor="middle" font-size="14" font-weight="800" fill="#6B4423">菜園</text></svg>`;
+      }
+      wrap.appendChild(Rt);
+    }
+    tiles.forEach((row, r) => row.forEach((b, c) => setAngle(r, c)));
+  }
+  function setAngle(r, c) { tiles[r][c].firstElementChild.style.transform = `rotate(${angles[r][c]}deg)`; }
+  function updateWater(playSound) {
+    const { wet, connected } = PipeLogic.flood(grid, P);
+    let newWet = 0;
+    tiles.forEach((row, r) => row.forEach((b, c) => {
+      const k = r + ',' + c;
+      const isWet = wet.has(k);
+      b.classList.toggle('wet', isWet);
+      if (isWet && !wetPrev.has(k) && playSound) { newWet++; FX.pulse(b, 'splash'); }
+    }));
+    wetPrev = wet;
+    const gw = wrap.querySelector('.garden-water');
+    if (gw) gw.setAttribute('fill', connected ? '#4FC3F7' : '#FFF1D6');
+    if (playSound && newWet && !connected) api.say(`水流進來了！現在有 ${wet.size} 格水道有水。`);
+    if (connected && playSound) {
+      lock = true;
+      api.sfx.water();
+      api.say('水流到菜園了！菜苗長出來囉～');
+      wrap.querySelectorAll('.sprout').forEach((s) => s.classList.add('up'));
+      const garden = wrap.querySelector('.garden-water');
+      if (garden) api.timers.set(() => FX.burst(garden.closest('.pipe-side'), { colors: ['#43C97A', '#4FC3F7', '#FFC83D'], n: 14, dist: 60 }), 300);
+      api.timers.set(() => api.win(count), 1000);
+    }
+    return connected;
+  }
+  function rotate(r, c, record) {
+    if (lock) return;
+    grid[r][c].r = (grid[r][c].r + 1) % 4;
+    angles[r][c] += 90;
+    setAngle(r, c);
+    FX.pulse(tiles[r][c], 'tap');
+    api.sfx.rotate();
+    if (record) { history.push([r, c]); count += 1; api.setCount(count); }
+    updateWater(true);
+  }
+  function hint() {
+    if (lock) return false;
+    const h = PipeLogic.hint(grid, P);
+    if (!h) return false;
+    FX.pulse(tiles[h.r][h.c], 'flash');
+    api.say(`點這根水管 ${h.clicks} 下。`);
+    return true;
+  }
+  function undo() {
+    if (lock) return;
+    if (!history.length) { api.say('還沒有可以復原的步驟喔。'); return; }
+    const [r, c] = history.pop();
+    grid[r][c].r = (grid[r][c].r + 3) % 4;
+    angles[r][c] -= 90;
+    setAngle(r, c);
+    FX.pulse(tiles[r][c], 'tap');
+    count -= 1; api.setCount(count);
+    api.sfx.rotate();
+    updateWater(false);
+  }
+  function reset() {
+    grid = PipeLogic.parse(P);
+    angles = grid.map((row) => row.map((t) => t.r * 90));
+    history = []; count = 0; lock = false; wetPrev = new Set();
+    build(); resize(); updateWater(false);
+    wetPrev = PipeLogic.flood(grid, P).wet;
+  }
+  reset();
+  return { start() { api.say(LEVEL_DEFS[2].story); }, hint, undo, reset, resize, destroy() { wrap.remove(); } };
+}
+
+/* ---------- 第 4 關：草地散步 ---------- */
+function createStrokeLevel(api) {
+  const P = api.puzzle;
+  const S = StrokeLogic;
+  const box = document.createElement('div');
+  box.className = 'stroke-box';
+  box.innerHTML = '<div class="stroke-grid"></div><svg class="stroke-svg"><polyline class="trail-out" fill="none" stroke="#E8913A" stroke-linecap="round" stroke-linejoin="round"/><polyline class="trail" fill="none" stroke="#FFD27A" stroke-linecap="round" stroke-linejoin="round"/><polyline class="trail-dots" fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 14"/></svg><div class="stroke-chick"></div>';
+  api.board.appendChild(box);
+  const gridEl = box.querySelector('.stroke-grid');
+  const chickEl = box.querySelector('.stroke-chick');
+  chickEl.innerHTML = Art.chick('normal');
+  const total = S.total(P);
+  let path, cells = [], lock = false, dragging = false, lastKey = '', cell = 56;
+  const COLORS = ['#FF9EB5', '#FFFFFF', '#FFC23D', '#A78BFA', '#5B9BFA', '#FF8A65'];
+
+  function resize() {
+    const w = api.availWidth();
+    cell = Math.floor(clamp((w - 16) / 5, 48, 76));
+    box.style.setProperty('--cell', cell + 'px');
+    drawPath();
+  }
+  function build() {
+    gridEl.innerHTML = '';
+    cells = [];
+    for (let r = 0; r < S.ROWS; r++) {
+      cells.push([]);
+      for (let c = 0; c < S.COLS; c++) {
+        const d = document.createElement('div');
+        const rock = S.isRock(P, r, c);
+        d.className = 'gcell' + (rock ? ' rock' : '');
+        d.dataset.r = r; d.dataset.c = c;
+        d.innerHTML = rock ? Art.rock : Art.smallFlower(COLORS[(r * 5 + c) % COLORS.length]) + '<span class="stepno"></span>';
+        gridEl.appendChild(d);
+        cells[r].push(d);
+      }
+    }
+  }
+  function center(r, c) { return [c * (cell + 4) + cell / 2, r * (cell + 4) + cell / 2]; }
+  function drawPath() {
+    const pts = path.map(([r, c]) => center(r, c).join(',')).join(' ');
+    const svg = box.querySelector('.stroke-svg');
+    svg.setAttribute('width', S.COLS * (cell + 4)); svg.setAttribute('height', S.ROWS * (cell + 4));
+    const p1 = svg.querySelector('.trail-out'), p2 = svg.querySelector('.trail'), p3 = svg.querySelector('.trail-dots');
+    [p1, p2, p3].forEach((p) => p.setAttribute('points', pts));
+    p1.setAttribute('stroke-width', cell * 0.26); p2.setAttribute('stroke-width', cell * 0.18); p3.setAttribute('stroke-width', cell * 0.07);
+    const [x, y] = center(...path[path.length - 1]);
+    chickEl.style.left = x + 'px'; chickEl.style.top = y + 'px';
+    cells.forEach((row, r) => row.forEach((d, c) => {
+      if (S.isRock(P, r, c)) return;
+      const idx = S.indexOf(path, r, c);
+      d.classList.toggle('visited', idx >= 0);
+      d.querySelector('.stepno').textContent = idx >= 0 ? String(idx + 1) : '';
+    }));
+  }
+  function shake(r, c) {
+    if (!S.inside(r, c)) return;
+    FX.pulse(cells[r][c], 'shake');
+    api.sfx.invalid();
+  }
+  function act(r, c) {
+    const kind = S.classify(P, path, r, c);
+    if (kind === 'extend') {
+      if (path.length === 1) api.clockStart();
+      path.push([r, c]);
+      FX.pulse(cells[r][c], 'bloom');
+      api.sfx.step(path.length);
+      drawPath();
+      if (path.length === total) finish();
+      else if (path.length % 5 === 0) api.say(`走了 ${path.length} 格，還剩 ${total - path.length} 格！`);
+    } else if (kind === 'back') {
+      path.pop();
+      drawPath();
+      api.sfx.pop();
+    } else {
+      const [lr, lc] = path[path.length - 1];
+      if (!(lr === r && lc === c)) shake(r, c);
+      return false;
+    }
+    return true;
+  }
+  function finish() {
+    lock = true;
+    api.clockStop();
+    api.say('每一格草地都開滿花了！');
+    path.forEach(([r, c], i) => api.timers.set(() => FX.pulse(cells[r][c], 'bloom'), i * 30));
+    api.timers.set(() => FX.burst(chickEl, { n: 14, dist: 70 }), 400);
+    api.timers.set(() => api.win(api.clockSeconds()), 1000);
+  }
+  function cellFromEvent(e) {
+    const el = document.elementFromPoint(e.clientX, e.clientY);
+    const d = el && el.closest ? el.closest('.gcell') : null;
+    if (!d || !box.contains(d)) return null;
+    return [Number(d.dataset.r), Number(d.dataset.c)];
+  }
+  function onDown(e) {
+    if (lock) return;
+    const rc = cellFromEvent(e);
+    if (!rc) return;
+    e.preventDefault();
+    const [r, c] = rc;
+    const [lr, lc] = path[path.length - 1];
+    lastKey = r + ',' + c;
+    dragging = (r === lr && c === lc) ? true : act(r, c);
+    if (dragging) { try { box.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ } }
+  }
+  function onMove(e) {
+    if (!dragging || lock) return;
+    const rc = cellFromEvent(e);
+    if (!rc) return;
+    const key = rc[0] + ',' + rc[1];
+    if (key === lastKey) return;
+    lastKey = key;
+    act(rc[0], rc[1]);
+  }
+  function onUp() { dragging = false; }
+  // 鍵盤：方向鍵與 WASD
+  const KEYS = { ArrowUp: [-1, 0], KeyW: [-1, 0], ArrowDown: [1, 0], KeyS: [1, 0], ArrowLeft: [0, -1], KeyA: [0, -1], ArrowRight: [0, 1], KeyD: [0, 1] };
+  function onKey(e) {
+    const v = KEYS[e.code];
+    if (!v || lock || Modal.anyOpen() || App.screen !== 'level') return;
+    if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+    e.preventDefault();
+    const [lr, lc] = path[path.length - 1];
+    const r = lr + v[0], c = lc + v[1];
+    if (!S.inside(r, c)) { FX.pulse(cells[lr][lc], 'shake'); api.sfx.invalid(); return; }
+    act(r, c);
+  }
+  box.addEventListener('pointerdown', onDown);
+  box.addEventListener('pointermove', onMove);
+  box.addEventListener('pointerup', onUp);
+  box.addEventListener('pointercancel', onUp);
+  document.addEventListener('keydown', onKey);
+
+  function hint() {
+    if (lock) return false;
+    const h = S.hint(P, path);
+    if (!h) return false;
+    const [r, c] = h.cell;
+    FX.pulse(cells[r][c], 'flash');
+    api.say(h.type === 'next' ? '往這裡走！' : `這條路走不完，退回第 ${h.n} 格（看格子右下角的數字）。`);
+    return true;
+  }
+  function undo() {
+    if (lock) return;
+    if (path.length <= 1) { api.say('已經在起點囉。'); return; }
+    path.pop(); drawPath(); api.sfx.pop();
+  }
+  function reset() {
+    path = [P.start.slice()]; lock = false; dragging = false;
+    build(); resize();
+  }
+  reset();
+  return {
+    start() { api.say(LEVEL_DEFS[3].story + '（電腦可以用方向鍵或 WASD）'); },
+    hint, undo, reset, resize,
+    destroy() { document.removeEventListener('keydown', onKey); box.remove(); },
+  };
+}
+
+/* ---------- 第 5 關：螢火蟲燈籠 ---------- */
+function createMirrorLevel(api) {
+  const P = api.puzzle;
+  const M = MirrorLogic;
+  const holder = document.createElement('div');
+  api.board.appendChild(holder);
+  let state, history = [], flips = 0, lock = false, litPrev = new Set();
+  const cx = (c) => c * 100 + 50, cy = (r) => r * 100 + 50;
+  const lampY = cy(P.source);
+
+  function resize() {
+    const w = api.availWidth();
+    holder.style.setProperty('--msize', Math.floor(clamp(w, 300, 540)) + 'px');
+  }
+  function build() {
+    const rand = mulberry32(7);
+    let stars = '';
+    for (let i = 0; i < 40; i++) stars += `<circle cx="${-80 + rand() * 690}" cy="${-10 + rand() * 620}" r="${0.8 + rand() * 1.8}" fill="#fff" opacity="${0.3 + rand() * 0.5}"/>`;
+    let cellsSvg = '';
+    for (let r = 0; r < M.SIZE; r++) for (let c = 0; c < M.SIZE; c++) {
+      cellsSvg += `<rect x="${c * 100 + 4}" y="${r * 100 + 4}" width="92" height="92" rx="16" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.1)"/>`;
+    }
+    const rocks = P.rocks.map(([r, c]) => `<g transform="translate(${c * 100 + 15},${r * 100 + 20}) scale(1.8)">${Art.rock.replace(/<\/?svg[^>]*>/g, '')}</g>`).join('');
+    const lanterns = P.lanterns.map(([r, c], i) => `<g class="lantern" data-i="${i}" transform="translate(${cx(c)},${cy(r)})">
+        <circle class="lantern-glow" r="44" fill="#FFB74D" filter="url(#blur10)"/>
+        <circle class="lantern-ring" r="30" fill="none" stroke="#FFE680" stroke-width="5" opacity="0"/>
+        <path d="M0 -36 v8" stroke="#C9B7E8" stroke-width="3"/>
+        <rect x="-11" y="-30" width="22" height="7" rx="3" fill="#7A5A3A"/>
+        <ellipse class="lantern-body" cx="0" cy="0" rx="22" ry="24" fill="#8A7F9E"/>
+        <path d="M0 -23 v46 M-11 -20 q-6 20 0 40 M11 -20 q6 20 0 40" stroke="rgba(0,0,0,.18)" stroke-width="2" fill="none"/>
+        <rect x="-11" y="22" width="22" height="7" rx="3" fill="#7A5A3A"/>
+        <path d="M0 29 v9" stroke="#FF5C7A" stroke-width="3" stroke-linecap="round"/>
+      </g>`).join('');
+    const mirrors = P.mirrors.map((m, i) => `<g class="mbtn" data-i="${i}" role="button" tabindex="0" aria-label="鏡子（第 ${m[0] + 1} 列第 ${m[1] + 1} 欄）">
+        <rect class="mhit" x="${m[1] * 100}" y="${m[0] * 100}" width="100" height="100" rx="16" fill="rgba(255,255,255,.02)"/>
+        <circle class="mring" cx="${cx(m[1])}" cy="${cy(m[0])}" r="44" fill="none" stroke="#FFC83D" stroke-width="5" opacity="0"/>
+        <ellipse cx="${cx(m[1])}" cy="${cy(m[0]) + 34}" rx="20" ry="6" fill="rgba(0,0,0,.25)"/>
+        <g class="mwrap"><g class="mface"><rect x="${cx(m[1]) - 40}" y="${cy(m[0]) - 7}" width="80" height="14" rx="7" fill="url(#mirrorGrad)" stroke="#E9F2FF" stroke-width="2.5"/></g></g>
+      </g>`).join('');
+    holder.innerHTML = `<svg class="mirror-svg" viewBox="-80 -10 690 620" role="group" aria-label="光線反射盤面">
+      <defs>
+        <filter id="blur6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+        <filter id="blur10" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+        <linearGradient id="mirrorGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#CFE3FF"/><stop offset=".5" stop-color="#FFFFFF"/><stop offset="1" stop-color="#9FB8F0"/></linearGradient>
+      </defs>
+      ${stars}${cellsSvg}
+      <g transform="translate(-42,${lampY})"><rect x="-6" y="0" width="12" height="46" rx="4" fill="#7A5A3A"/><circle r="26" fill="#FFF3B0" filter="url(#blur10)" opacity=".8"/><circle r="20" fill="#FFF3B0"/><circle cx="8" cy="-6" r="16" fill="#4E4592"/></g>
+      ${rocks}${lanterns}
+      <polyline class="beam-glow" points=""/><polyline class="beam-core" points=""/>
+      ${mirrors}
+      <g class="fireflies"></g>
+    </svg>`;
+    holder.querySelectorAll('.mbtn').forEach((g) => {
+      const i = Number(g.dataset.i);
+      g.addEventListener('click', () => flip(i, true));
+      g.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); flip(i, true); } });
+    });
+  }
+  function setMirror(i, animate) {
+    const g = holder.querySelector(`.mbtn[data-i="${i}"]`);
+    g.querySelector('.mface').style.transform = `rotate(${state[i] === '/' ? -45 : 45}deg)`;
+    if (animate && g.querySelector('.mwrap').animate && !reducedMotion()) {
+      g.querySelector('.mwrap').animate([{ transform: 'scale(1)' }, { transform: 'scale(1.28)' }, { transform: 'scale(1)' }], { duration: 260, easing: 'ease-out' });
+      FX.burst(g.querySelector('.mhit'), { colors: ['#FFF7C2', '#CFE3FF', '#fff'], n: 7, dist: 34, size: 7 });
+    }
+  }
+  function update(playSound) {
+    const t = M.trace(P, state);
+    let pts = `-42,${lampY}`;
+    t.path.forEach(([r, c]) => { pts += ` ${cx(c)},${cy(r)}`; });
+    const [lr, lc] = t.path[t.path.length - 1];
+    const v = M.VEC[t.dir];
+    pts += ` ${cx(lc) + v[1] * 50},${cy(lr) + v[0] * 50}`;
+    const glow = holder.querySelector('.beam-glow');
+    glow.setAttribute('points', pts);
+    holder.querySelector('.beam-core').setAttribute('points', pts);
+    // 光束重新「畫出來」的動畫
+    if (playSound && glow.getTotalLength && glow.animate && !reducedMotion()) {
+      const len = glow.getTotalLength();
+      glow.style.strokeDasharray = len + 1;
+      glow.animate([{ strokeDashoffset: len + 1 }, { strokeDashoffset: 0 }], { duration: 380, easing: 'ease-out' });
+    } else {
+      glow.style.strokeDasharray = 'none';
+    }
+    let newly = 0;
+    holder.querySelectorAll('.lantern').forEach((g) => {
+      const i = Number(g.dataset.i);
+      const on = t.lit.has(i);
+      g.classList.toggle('on', on);
+      g.querySelector('.lantern-body').setAttribute('fill', on ? '#FFB74D' : '#8A7F9E');
+      if (on && !litPrev.has(i) && playSound) {
+        newly++;
+        api.sfx.lantern();
+        const ring = g.querySelector('.lantern-ring');
+        if (ring.animate) ring.animate([{ opacity: 1, transform: 'scale(.6)' }, { opacity: 0, transform: 'scale(2.2)' }], { duration: 650, easing: 'ease-out' });
+      }
+    });
+    litPrev = t.lit;
+    const left = P.lanterns.length - t.lit.size;
+    if (newly && left > 0) api.say(`點亮了！還差 ${left} 盞燈籠。`);
+    if (left === 0 && playSound) {
+      lock = true;
+      api.say('三盞燈籠都亮了！螢火蟲飛出來囉～');
+      const ff = holder.querySelector('.fireflies');
+      P.lanterns.forEach(([r, c]) => {
+        for (let k = 0; k < 6; k++) {
+          const a = Math.random() * Math.PI * 2, d = 60 + Math.random() * 90;
+          ff.insertAdjacentHTML('beforeend', `<circle class="firefly" cx="${cx(c)}" cy="${cy(r)}" r="5" fill="#FFF59D" style="--fx:${Math.cos(a) * d}px;--fy:${Math.sin(a) * d - 40}px;animation-delay:${k * 0.06}s"/>`);
+        }
+      });
+      api.timers.set(() => api.win(flips), 1100);
+    }
+  }
+  function flip(i, record) {
+    if (lock) return;
+    state[i] = state[i] === '/' ? '\\' : '/';
+    setMirror(i, true);
+    api.sfx.mirror();
+    if (record) { history.push(i); flips += 1; api.setCount(flips); }
+    update(true);
+  }
+  function hint() {
+    if (lock) return false;
+    const mi = M.hint(P, state);
+    if (mi === null) return false;
+    const ring = holder.querySelector(`.mbtn[data-i="${mi}"] .mring`);
+    if (ring.animate) ring.animate([{ opacity: 0 }, { opacity: 1 }, { opacity: 0 }, { opacity: 1 }, { opacity: 0 }], { duration: 1600 });
+    api.say('轉這面鏡子！');
+    return true;
+  }
+  function undo() {
+    if (lock) return;
+    if (!history.length) { api.say('還沒有可以復原的步驟喔。'); return; }
+    const i = history.pop();
+    state[i] = state[i] === '/' ? '\\' : '/';
+    setMirror(i, true);
+    flips -= 1; api.setCount(flips);
+    api.sfx.mirror();
+    update(false);
+  }
+  function reset() {
+    state = M.initState(P); history = []; flips = 0; lock = false;
+    build(); resize();
+    state.forEach((_, i) => setMirror(i, false));
+    litPrev = new Set();
+    update(false);
+  }
+  reset();
+  return { start() { api.say(LEVEL_DEFS[4].story); }, hint, undo, reset, resize, destroy() { holder.remove(); } };
+}
+
+const LEVEL_CREATORS = [createMemoryLevel, createBerryLevel, createPipeLevel, createStrokeLevel, createMirrorLevel];
+
+/* =========================================================
+   九、山谷滑行（無盡模式）
+   ========================================================= */
+const SLIDE_CONFIG = {
+  DT: 1 / 120,          // 固定時間步長（秒）
+  MAX_FRAME: 0.05,      // 每影格最多模擬的實際時間
+  G: 900,               // 一般重力（px/s²）
+  HOLD_G: 3000,         // 按住時的重力（下坡與空中）
+  HOLD_G_UP: 2000,      // 在上坡按住時，下壓效果比較小（新手亂按也不會太快停下）
+  FRICTION: 0.03,       // 每秒摩擦比例
+  MAX_V: 1500,          // 速度上限（px/s）
+  START_X: 40,
+  START_V: 320,
+  PERFECT_DEG: 30, PERFECT_K: 1.15,   // 落在下坡且角度差 < 30° 算完美落地
+  BAD_DEG: 40, BAD_K: 0.8,
+  TAKEOFF_MIN_V: 260,   // 起飛輔助：放開狀態離地、速度夠快時觸發
+  TAKEOFF_LIFT: 60,     // 往上的小推力（px/s）
+  TAKEOFF_BOOST: 1.06,  // 水平速度加成
+  TAKEOFF_GAP: 150,     // 兩次起飛輔助至少相隔的距離（px）
+  PX_PER_M: 20,
+  SEG_MIN: 280, SEG_MAX: 520,
+  AMP_BASE: 70, AMP_GROW: 100, AMP_FULL_M: 5000,
+  U_MIN: 0.6, U_MAX: 1.0,
+  STAR_DX: 20, STAR_UP: 58,         // 一般星星：山頂右上方
+  RAINBOW_EVERY: 4, RAINBOW_DX: 140, RAINBOW_UP: 130, RAINBOW_VALUE: 3,  // 彩虹星：要飛高才拿得到
+  STAR_R: 30,           // 收集半徑
+  MAGNET_R: 70,         // 磁吸半徑：靠近時星星會被吸過來
+  MAGNET_V: 900,
+  CHICK_UP: 22,         // 啾啾中心在雪橇接觸點上方的距離
+  STALL_T: 2.5,
+  MILESTONE_M: 250,
+};
+
+/** 地形：交替的谷底／山頂關鍵點，餘弦插值 */
+class Terrain {
+  constructor(seed) {
+    this.rand = mulberry32(seed);
+    this.keys = [{ x: 0, y: -60 }];
+    this.nextPeak = false;
+    this.peaks = 0;
+    this.stars = [];
+  }
+  amp(x) {
+    const C = SLIDE_CONFIG;
+    return C.AMP_BASE + C.AMP_GROW * Math.min(1, (x / C.PX_PER_M) / C.AMP_FULL_M);
+  }
+  ensure(x) {
+    const C = SLIDE_CONFIG;
+    while (this.keys[this.keys.length - 1].x < x) {
+      const last = this.keys[this.keys.length - 1];
+      const L = C.SEG_MIN + this.rand() * (C.SEG_MAX - C.SEG_MIN);
+      const A = this.amp(last.x);
+      const u = C.U_MIN + this.rand() * (C.U_MAX - C.U_MIN);
+      const nx = last.x + L;
+      const ny = this.nextPeak ? -A * u : A * u;
+      this.keys.push({ x: nx, y: ny });
+      if (this.nextPeak) {
+        this.peaks += 1;
+        this.stars.push({ x: nx + C.STAR_DX, y: ny - C.STAR_UP, value: 1, taken: false });
+        if (this.peaks % C.RAINBOW_EVERY === 0) {
+          this.stars.push({ x: nx + C.RAINBOW_DX, y: ny - C.RAINBOW_UP, value: C.RAINBOW_VALUE, taken: false });
+        }
+      }
+      this.nextPeak = !this.nextPeak;
+    }
+  }
+  /** 刪除鏡頭後方用不到的關鍵點 */
+  trim(x) {
+    while (this.keys.length > 3 && this.keys[1].x < x) this.keys.shift();
+    this.stars = this.stars.filter((s) => s.x > x - 200);
+  }
+  seg(x) {
+    this.ensure(x + 1);
+    const k = this.keys;
+    if (x <= k[0].x) return [k[0], k[1]];
+    let lo = 0, hi = k.length - 1;
+    while (hi - lo > 1) {
+      const mid = (lo + hi) >> 1;
+      if (k[mid].x <= x) lo = mid; else hi = mid;
+    }
+    return [k[lo], k[lo + 1]];
+  }
+  y(x) {
+    const [a, b] = this.seg(x);
+    const t = clamp((x - a.x) / (b.x - a.x), 0, 1);
+    return a.y + (b.y - a.y) * (1 - Math.cos(Math.PI * t)) / 2;
+  }
+  slope(x) {
+    const [a, b] = this.seg(x);
+    const t = clamp((x - a.x) / (b.x - a.x), 0, 1);
+    return (b.y - a.y) * Math.PI / 2 * Math.sin(Math.PI * t) / (b.x - a.x);
+  }
+}
+
+/** 物理模擬（遊戲與自我測試共用） */
+class SlideSim {
+  constructor(seed) {
+    const C = SLIDE_CONFIG;
+    this.terrain = new Terrain(seed);
+    this.x = C.START_X;
+    this.y = this.terrain.y(this.x);
+    const s = this.terrain.slope(this.x), n = Math.hypot(1, s);
+    this.vx = C.START_V / n;
+    this.vy = C.START_V * s / n;
+    this.grounded = true;
+    this.maxX = this.x;
+    this.stall = 0;
+    this.stars = 0;
+    this.combo = 0;
+    this.bonus = 0;
+    this.perfects = 0;
+    this.lastAssistX = -1e9;
+    this.nextMilestone = C.MILESTONE_M;
+    this.time = 0;
+    this.over = false;
+    this.events = [];
+  }
+  /** 前進一個固定時間步長 */
+  step(hold) {
+    const C = SLIDE_CONFIG, dt = C.DT;
+    if (this.over) return;
+    let g = C.G;
+    if (hold) g = (this.grounded && this.terrain.slope(this.x) < 0) ? C.HOLD_G_UP : C.HOLD_G;
+    this.vy += g * dt;
+    this.x += this.vx * dt;
+    this.y += this.vy * dt;
+    const gy = this.terrain.y(this.x);
+    if (this.y >= gy) {
+      const s = this.terrain.slope(this.x), n = Math.hypot(1, s);
+      const tx = 1 / n, ty = s / n;
+      let vt = this.vx * tx + this.vy * ty;
+      if (!this.grounded) {
+        const diff = Math.abs(Math.atan2(this.vy, this.vx) - Math.atan2(ty, tx)) * 180 / Math.PI;
+        if (diff < C.PERFECT_DEG && ty > 0) {
+          vt *= C.PERFECT_K;
+          this.combo += 1; this.perfects += 1;
+          this.bonus += 10 * this.combo;
+          this.events.push({ type: 'perfect', combo: this.combo });
+        } else {
+          if (diff > C.BAD_DEG) { vt *= C.BAD_K; this.events.push({ type: 'bad' }); }
+          this.combo = 0;
+        }
+      }
+      this.y = gy; this.vx = vt * tx; this.vy = vt * ty; this.grounded = true;
+    } else if (this.y < gy - 2) {
+      // 起飛輔助：放開狀態下離地，給一點往上與往前的推力
+      if (this.grounded && !hold && Math.hypot(this.vx, this.vy) > C.TAKEOFF_MIN_V && this.x - this.lastAssistX > C.TAKEOFF_GAP) {
+        this.vy -= C.TAKEOFF_LIFT;
+        this.vx *= C.TAKEOFF_BOOST;
+        this.lastAssistX = this.x;
+        this.events.push({ type: 'takeoff' });
+      }
+      this.grounded = false;
+    }
+    const f = 1 - C.FRICTION * dt;
+    this.vx *= f; this.vy *= f;
+    const sp = Math.hypot(this.vx, this.vy);
+    if (sp > C.MAX_V) { this.vx *= C.MAX_V / sp; this.vy *= C.MAX_V / sp; }
+
+    // 星星：靠近時被吸過來，碰到就收集
+    const cxp = this.x, cyp = this.y - C.CHICK_UP;
+    for (const st of this.terrain.stars) {
+      if (st.taken || Math.abs(st.x - cxp) > C.MAGNET_R + 40) continue;
+      let d = Math.hypot(st.x - cxp, st.y - cyp);
+      if (d > 0 && d <= C.MAGNET_R) {
+        const stepLen = Math.min(d, C.MAGNET_V * dt);
+        st.x += (cxp - st.x) / d * stepLen;
+        st.y += (cyp - st.y) / d * stepLen;
+        st.pulled = true;
+        d = Math.hypot(st.x - cxp, st.y - cyp);
+      }
+      if (d <= C.STAR_R) {
+        st.taken = true;
+        this.stars += st.value;
+        this.events.push({ type: 'collect', value: st.value });
+      }
+    }
+    // 里程碑
+    if (this.maxX / C.PX_PER_M >= this.nextMilestone) {
+      this.events.push({ type: 'milestone', m: this.nextMilestone });
+      this.nextMilestone += C.MILESTONE_M;
+    }
+    // 結束判定：連續 2.5 秒沒有創下新的最遠距離
+    if (this.x > this.maxX + 0.5) { this.maxX = this.x; this.stall = 0; }
+    else this.stall += dt;
+    this.time += dt;
+    if (this.stall >= C.STALL_T) this.over = true;
+  }
+  speed() { return Math.hypot(this.vx, this.vy); }
+  meters() { return Math.floor(this.maxX / SLIDE_CONFIG.PX_PER_M); }
+  /** 分數 = 距離 + 星星 × 20 + 完美落地連擊加分 */
+  score() { return this.meters() + this.stars * 20 + this.bonus; }
+}
+
+/** 畫面與操作 */
+const Slide = {
+  wrap: null, cv: null, ctx: null, w: 300, h: 300, dpr: 1, zoom: 1, vw: 300, vh: 300,
+  sim: null, state: 'ready', hold: false, raf: 0, last: 0, acc: 0,
+  cam: { x: 0, y: 0 }, angle: 0, parts: [], floats: [], bestAtStart: 0, hud: {},
+
+  init() {
+    this.wrap = $('#slideWrap');
+    this.cv = $('#slideCanvas');
+    this.ctx = this.cv.getContext('2d');
+    this.font = getComputedStyle(document.body).fontFamily;
+    this.hud = { dist: $('#hudDist'), stars: $('#hudStars'), speed: $('#hudSpeed'), best: $('#hudBest'),
+                 combo: $('#hudCombo'), hold: $('#hudHold') };
+    const press = (e) => { if (this.state === 'running') { this.hold = true; e.preventDefault(); } };
+    const release = () => { this.hold = false; };
+    this.cv.addEventListener('pointerdown', (e) => { try { this.cv.setPointerCapture(e.pointerId); } catch (err) { /* 忽略 */ } press(e); });
+    this.cv.addEventListener('pointerup', release);
+    this.cv.addEventListener('pointercancel', release);
+    this.cv.addEventListener('pointerleave', release);
+    this.wrap.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('keydown', (e) => {
+      if (App.screen !== 'slide' || e.code !== 'Space') return;
+      if (this.state === 'running') { this.hold = true; e.preventDefault(); }
+    });
+    document.addEventListener('keyup', (e) => { if (e.code === 'Space') this.hold = false; });
+    document.addEventListener('visibilitychange', () => { if (document.hidden && this.state === 'running') this.pause(); });
+    window.addEventListener('blur', release);
+    $('#slideGo').addEventListener('click', () => this.start());
+    $('#slidePause').addEventListener('click', () => (this.state === 'running' ? this.pause() : this.resume()));
+    $('#slideResume').addEventListener('click', () => this.resume());
+    $('#slideQuit').addEventListener('click', () => App.showMap());
+    $('#ovAgain').addEventListener('click', () => { this.newRun(); this.start(); });
+    $('#ovMap').addEventListener('click', () => App.showMap());
+    $('#slideStartChick').innerHTML = Art.chick('happy');
+    $('#slideOverChick').innerHTML = Art.chick('normal');
+  },
+  resize() {
+    const r = this.wrap.getBoundingClientRect();
+    this.w = Math.max(200, r.width); this.h = Math.max(200, r.height);
+    this.dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.cv.width = Math.round(this.w * this.dpr);
+    this.cv.height = Math.round(this.h * this.dpr);
+    // 窄螢幕時把鏡頭拉遠，才看得到前方地形
+    this.zoom = clamp(this.w / 760, 0.62, 1);
+    this.vw = this.w / this.zoom;
+    this.vh = this.h / this.zoom;
+    if (this.sim) this.render();
+  },
+  enter() {
+    this.resize();
+    this.newRun();
+    $('#slideStart').hidden = false;
+  },
+  newRun() {
+    cancelAnimationFrame(this.raf); this.raf = 0;
+    this.sim = new SlideSim((Date.now() ^ (Math.random() * 1e9)) >>> 0);
+    this.state = 'ready';
+    this.hold = false;
+    this.parts = []; this.floats = [];
+    this.angle = 0;
+    this.guide = { text: '', t: 0 };
+    this.bestAtStart = Store.data.endless.bestMeters;
+    this.cam.x = this.sim.x - this.vw * 0.3;
+    this.cam.y = this.sim.y - this.vh * 0.58;
+    $('#slideOver').hidden = true; $('#slidePaused').hidden = true;
+    $('#slidePause').disabled = true; $('#slidePause').textContent = '暫停';
+    this.updateHud(true);
+    this.render();
+  },
+  start() {
+    $('#slideStart').hidden = true; $('#slideOver').hidden = true;
+    this.state = 'running';
+    $('#slidePause').disabled = false;
+    this.last = performance.now(); this.acc = 0;
+    this.raf = requestAnimationFrame((t) => this.loop(t));
+  },
+  pause() {
+    if (this.state !== 'running') return;
+    this.state = 'paused'; this.hold = false;
+    cancelAnimationFrame(this.raf); this.raf = 0;
+    $('#slidePaused').hidden = false;
+    $('#slidePause').textContent = '繼續';
+  },
+  resume() {
+    if (this.state !== 'paused') return;
+    $('#slidePaused').hidden = true;
+    $('#slidePause').textContent = '暫停';
+    this.state = 'running';
+    this.last = performance.now(); this.acc = 0;
+    this.raf = requestAnimationFrame((t) => this.loop(t));
+  },
+  /** 離開畫面：停止迴圈 */
+  leave() {
+    cancelAnimationFrame(this.raf); this.raf = 0;
+    this.state = 'ready'; this.hold = false;
+    $('#slidePaused').hidden = true; $('#slideOver').hidden = true;
+  },
+  loop(now) {
+    if (this.state !== 'running') return;
+    const C = SLIDE_CONFIG;
+    const frame = Math.min(C.MAX_FRAME, (now - this.last) / 1000);
+    this.last = now;
+    this.acc += frame;
+    const sim = this.sim;
+    while (this.acc >= C.DT && !sim.over) {
+      sim.step(this.hold);
+      this.acc -= C.DT;
+    }
+    for (const ev of sim.events) this.onEvent(ev);
+    sim.events.length = 0;
+    this.updateFx(frame);
+    this.updateCamera(frame);
+    sim.terrain.trim(this.cam.x - this.vw);
+    this.render();
+    this.updateHud(false);
+    if (sim.over) { this.gameOver(); return; }
+    this.raf = requestAnimationFrame((t) => this.loop(t));
+  },
+  onEvent(ev) {
+    const sx = this.sim.x, sy = this.sim.y - 64;
+    const float = (text, color, dy, big) => this.floats.push({ text, color, x: sx, y: sy + (dy || 0), t: 0, big: !!big });
+    if (ev.type === 'perfect') {
+      Sound.perfect();
+      float(ev.combo >= 2 ? `完美落地 ×${ev.combo}` : '完美落地！', '#2E9E5B', 0, ev.combo >= 3);
+      if (ev.combo >= 3) this.sparkle(14, ['#43C97A', '#FFC83D', '#fff']);
+    } else if (ev.type === 'bad') { Sound.oops(); float('哎呀！', '#E04848'); }
+    else if (ev.type === 'takeoff') { Sound.whoosh(); float('起飛！', '#2E8BC0', 18); }
+    else if (ev.type === 'collect') {
+      if (ev.value > 1) { Sound.collect(); Sound.lantern(); float(`彩虹星 +${ev.value}`, '#B45DE0', -26, true); this.sparkle(18, ['#FF5C7A', '#FFC23D', '#43C97A', '#5B9BFA', '#A78BFA']); }
+      else { Sound.collect(); float('+1 ★', '#C98A00', -26); this.sparkle(6, ['#FFC83D', '#fff']); }
+    } else if (ev.type === 'milestone') { Sound.win(); float(`${ev.m} 公尺！`, '#E46B47', -60, true); }
+  },
+  /** 在啾啾身邊噴出小星光 */
+  sparkle(n, colors) {
+    if (reducedMotion()) return;
+    for (let i = 0; i < n; i++) {
+      const a = Math.random() * Math.PI * 2, v = 120 + Math.random() * 160;
+      this.parts.push({ x: this.sim.x, y: this.sim.y - 26, vx: Math.cos(a) * v + this.sim.vx * 0.5, vy: Math.sin(a) * v - 60, life: 0.6, color: colors[i % colors.length] });
+    }
+  },
+  updateCamera(dt) {
+    const sim = this.sim;
+    this.cam.x = sim.x - this.vw * 0.3;
+    const target = sim.y - this.vh * 0.58;
+    this.cam.y += (target - this.cam.y) * Math.min(1, dt * 4);
+    const sy = sim.y - this.cam.y;
+    if (sy < 90) this.cam.y = sim.y - 90;
+    if (sy > this.vh - 40) this.cam.y = sim.y - (this.vh - 40);
+    // 身體角度：在地面時貼合坡度，在空中時跟著速度方向
+    const target2 = sim.grounded ? Math.atan(sim.terrain.slope(sim.x)) : Math.atan2(sim.vy, Math.max(60, sim.vx)) * 0.7;
+    this.angle += (target2 - this.angle) * Math.min(1, dt * 12);
+  },
+  updateFx(dt) {
+    const sim = this.sim;
+    if (sim.grounded && sim.speed() > 220 && !reducedMotion() && this.parts.length < 80) {
+      this.parts.push({ x: sim.x - 18, y: sim.y - 2, vx: -sim.vx * 0.15 - 40 * Math.random(), vy: -60 - 80 * Math.random(), life: 0.5 });
+    }
+    // 新手引導：還不熟的玩家前 25 秒，在下坡提示「按住」、上坡提示「放開」
+    if (this.bestAtStart < 300 && sim.time < 25) {
+      const sl = sim.terrain.slope(sim.x);
+      let want = '';
+      if (sim.grounded && sl > 0.12 && !this.hold) want = '按住！往下衝';
+      else if (sim.grounded && sl < -0.12 && this.hold) want = '放開！準備飛';
+      this.guide.t += dt;
+      if (want !== this.guide.text && (this.guide.t > 0.5 || want)) { this.guide.text = want; this.guide.t = 0; }
+    } else this.guide.text = '';
+    for (let i = this.parts.length - 1; i >= 0; i--) {
+      const p = this.parts[i];
+      p.life -= dt; p.vy += 300 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+      if (p.life <= 0) this.parts.splice(i, 1);
+    }
+    for (let i = this.floats.length - 1; i >= 0; i--) { this.floats[i].t += dt; if (this.floats[i].t > 0.9) this.floats.splice(i, 1); }
+  },
+  updateHud(force) {
+    const sim = this.sim;
+    const m = sim.meters();
+    if (force || this.hud.dist.textContent !== String(m)) this.hud.dist.textContent = m;
+    if (force || this.hud.stars.textContent !== String(sim.stars)) this.hud.stars.textContent = sim.stars;
+    this.hud.speed.style.width = Math.round(clamp(sim.speed() / SLIDE_CONFIG.MAX_V, 0, 1) * 100) + '%';
+    this.hud.best.textContent = Math.max(this.bestAtStart, 0);
+    this.hud.combo.hidden = sim.combo < 2;
+    if (sim.combo >= 2) this.hud.combo.textContent = `完美連擊 ×${sim.combo}`;
+    this.hud.hold.hidden = !(this.hold && this.state === 'running');
+  },
+  gameOver() {
+    this.state = 'over'; this.hold = false;
+    cancelAnimationFrame(this.raf); this.raf = 0;
+    $('#slidePause').disabled = true;
+    const sim = this.sim;
+    const e = Store.data.endless;
+    const isNew = sim.score() > e.bestScore;
+    e.runs += 1;
+    e.bestScore = Math.max(e.bestScore, sim.score());
+    e.bestMeters = Math.max(e.bestMeters, sim.meters());
+    Store.save();
+    $('#ovDist').textContent = sim.meters();
+    $('#ovStars').textContent = sim.stars;
+    $('#ovScore').textContent = sim.score();
+    $('#ovBonus').textContent = sim.perfects ? `完美落地 ${sim.perfects} 次，連擊加分 +${sim.bonus}` : '試試在下坡落地，拿「完美落地」加分！';
+    $('#ovNew').hidden = !isNew;
+    $('#slideOver').hidden = false;
+    Sound.gameover();
+    if (isNew) { Confetti.burst(80); Sound.win(); }
+    App.renderEndlessCard();
+  },
+
+  /* ---------- 繪圖 ---------- */
+  render() {
+    const c = this.ctx, w = this.vw, h = this.vh, sim = this.sim, cam = this.cam;
+    const k = this.dpr * this.zoom;
+    c.setTransform(k, 0, 0, k, 0, 0);
+    // 天空：滑越遠，天色從白天變成黃昏
+    const p = clamp(sim.meters() / 1600, 0, 1);
+    const top = p < 0.5 ? mixColor('#BDEBFF', '#FFC7A3', p * 2) : mixColor('#FFC7A3', '#8E7CC3', (p - 0.5) * 2);
+    const bot = p < 0.5 ? mixColor('#FFF5DC', '#FFE6BF', p * 2) : mixColor('#FFE6BF', '#FFB8A0', (p - 0.5) * 2);
+    const sky = c.createLinearGradient(0, 0, 0, h);
+    sky.addColorStop(0, top); sky.addColorStop(1, bot);
+    c.fillStyle = sky; c.fillRect(0, 0, w, h);
+    // 太陽（慢慢落下、變橘）
+    const sunY = h * (0.17 + 0.28 * p);
+    const sunC = mixColor('#FFD54A', '#FF8A4C', p);
+    c.globalAlpha = 0.25; c.fillStyle = sunC; c.beginPath(); c.arc(w * 0.84, sunY, 52, 0, Math.PI * 2); c.fill();
+    c.globalAlpha = 1; c.fillStyle = sunC; c.beginPath(); c.arc(w * 0.84, sunY, 32, 0, Math.PI * 2); c.fill();
+    // 雲（0.2 倍速）
+    const cb = cam.x * 0.2;
+    for (let i = Math.floor(cb / 320) - 1; i < Math.floor((cb + w) / 320) + 2; i++) {
+      const x = i * 320 - cb + ((i * 97) % 120);
+      const y = 40 + ((i * 53) % 70);
+      this.cloud(x, y, 0.8 + ((i * 31) % 40) / 100);
+    }
+    // 遠山（0.5 倍速）
+    const hb = cam.x * 0.5;
+    c.fillStyle = 'rgba(155, 210, 140, .55)';
+    c.beginPath(); c.moveTo(0, h);
+    for (let sx = 0; sx <= w + 10; sx += 10) {
+      const wx = sx + hb;
+      c.lineTo(sx, h * 0.55 + Math.sin(wx * 0.004) * 34 + Math.sin(wx * 0.011) * 14 - (cam.y + h * 0.58) * 0.08);
+    }
+    c.lineTo(w, h); c.closePath(); c.fill();
+    // 地形
+    const t = sim.terrain;
+    c.beginPath();
+    for (let sx = -10; sx <= w + 10; sx += 6) {
+      const y = t.y(cam.x + sx) - cam.y;
+      if (sx === -10) c.moveTo(sx, y); else c.lineTo(sx, y);
+    }
+    c.lineTo(w + 10, h + 10); c.lineTo(-10, h + 10); c.closePath();
+    const g = c.createLinearGradient(0, h * 0.35, 0, h);
+    g.addColorStop(0, '#9BE07B'); g.addColorStop(0.45, '#C6E89A'); g.addColorStop(1, '#E7C998');
+    c.fillStyle = g; c.fill();
+    c.beginPath();
+    for (let sx = -10; sx <= w + 10; sx += 6) {
+      const y = t.y(cam.x + sx) - cam.y;
+      if (sx === -10) c.moveTo(sx, y); else c.lineTo(sx, y);
+    }
+    c.lineJoin = 'round';
+    c.strokeStyle = '#5DBB63'; c.lineWidth = 6; c.stroke();
+    c.strokeStyle = 'rgba(255,255,255,.45)'; c.lineWidth = 2; c.stroke();
+    // 最高紀錄旗子
+    if (this.bestAtStart > 0) {
+      const fx = this.bestAtStart * SLIDE_CONFIG.PX_PER_M - cam.x;
+      if (fx > -60 && fx < w + 60) {
+        const fy = t.y(this.bestAtStart * SLIDE_CONFIG.PX_PER_M) - cam.y;
+        c.strokeStyle = '#8B5A2B'; c.lineWidth = 3;
+        c.beginPath(); c.moveTo(fx, fy); c.lineTo(fx, fy - 70); c.stroke();
+        c.fillStyle = '#FF8A65';
+        c.beginPath(); c.moveTo(fx, fy - 70); c.lineTo(fx + 40, fy - 60); c.lineTo(fx, fy - 50); c.closePath(); c.fill();
+        c.font = '800 12px ' + this.font;
+        c.fillStyle = '#6B4423'; c.textAlign = 'center';
+        c.fillText('最高紀錄', fx, fy - 76);
+      }
+    }
+    // 星星
+    const now = performance.now() / 1000;
+    for (const st of t.stars) {
+      if (st.taken) continue;
+      const sx = st.x - cam.x, sy = st.y - cam.y + Math.sin(now * 3 + st.x) * 4;
+      if (sx < -30 || sx > w + 30) continue;
+      if (st.value > 1) this.rainbowStar(sx, sy, 18, now);
+      else this.star(sx, sy, 13);
+    }
+    // 雪花拖尾
+    for (const pt of this.parts) {
+      c.globalAlpha = clamp(pt.life * 2, 0, 1);
+      c.fillStyle = pt.color || 'rgba(255,255,255,.9)';
+      c.beginPath(); c.arc(pt.x - cam.x, pt.y - cam.y, pt.color ? 3.5 : 3, 0, Math.PI * 2); c.fill();
+    }
+    c.globalAlpha = 1;
+    // 啾啾
+    this.drawChick(sim.x - cam.x, sim.y - cam.y, this.angle, !sim.grounded, this.hold);
+    // 新手引導泡泡
+    if (this.guide.text) {
+      const gx = sim.x - cam.x, gy = sim.y - cam.y - 78;
+      c.font = '900 16px ' + this.font;
+      const tw = c.measureText(this.guide.text).width + 22;
+      c.fillStyle = 'rgba(255,255,255,.95)';
+      c.strokeStyle = '#FF8A65'; c.lineWidth = 3;
+      c.beginPath();
+      if (c.roundRect) c.roundRect(gx - tw / 2, gy - 16, tw, 30, 14); else c.rect(gx - tw / 2, gy - 16, tw, 30);
+      c.fill(); c.stroke();
+      c.beginPath(); c.moveTo(gx - 7, gy + 14); c.lineTo(gx, gy + 24); c.lineTo(gx + 7, gy + 14); c.closePath(); c.fill();
+      c.fillStyle = '#E46B47'; c.textAlign = 'center'; c.textBaseline = 'middle';
+      c.fillText(this.guide.text, gx, gy);
+      c.textBaseline = 'alphabetic';
+    }
+    // 浮動文字
+    c.textAlign = 'center';
+    for (const f of this.floats) {
+      c.font = `900 ${f.big ? 26 : 20}px ` + this.font;
+      c.globalAlpha = 1 - f.t / 0.9;
+      c.lineWidth = 5; c.strokeStyle = '#fff';
+      c.strokeText(f.text, f.x - cam.x, f.y - cam.y - f.t * 50);
+      c.fillStyle = f.color;
+      c.fillText(f.text, f.x - cam.x, f.y - cam.y - f.t * 50);
+    }
+    c.globalAlpha = 1;
+  },
+  rainbowStar(x, y, r, now) {
+    const c = this.ctx;
+    c.save(); c.translate(x, y); c.rotate(Math.sin(now * 2) * 0.2);
+    const g = c.createLinearGradient(-r, -r, r, r);
+    ['#FF5C7A', '#FFC23D', '#43C97A', '#5B9BFA', '#A78BFA'].forEach((col, i) => g.addColorStop(i / 4, col));
+    c.fillStyle = 'rgba(255, 255, 255, .45)'; c.beginPath(); c.arc(0, 0, r * 1.8, 0, Math.PI * 2); c.fill();
+    c.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const rr = i % 2 ? r * 0.45 : r;
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    c.closePath();
+    c.fillStyle = g; c.fill();
+    c.strokeStyle = '#fff'; c.lineWidth = 2.5; c.stroke();
+    c.restore();
+  },
+  cloud(x, y, s) {
+    const c = this.ctx;
+    c.fillStyle = 'rgba(255,255,255,.9)';
+    c.beginPath();
+    c.arc(x, y, 18 * s, 0, Math.PI * 2); c.arc(x + 22 * s, y - 8 * s, 22 * s, 0, Math.PI * 2);
+    c.arc(x + 46 * s, y, 18 * s, 0, Math.PI * 2); c.rect(x, y, 46 * s, 18 * s);
+    c.fill();
+  },
+  star(x, y, r) {
+    const c = this.ctx;
+    c.save(); c.translate(x, y);
+    c.fillStyle = 'rgba(255, 200, 61, .3)'; c.beginPath(); c.arc(0, 0, r * 1.7, 0, Math.PI * 2); c.fill();
+    c.beginPath();
+    for (let i = 0; i < 10; i++) {
+      const rr = i % 2 ? r * 0.45 : r;
+      const a = -Math.PI / 2 + i * Math.PI / 5;
+      c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+    }
+    c.closePath();
+    c.fillStyle = '#FFC83D'; c.fill();
+    c.strokeStyle = '#E0A21C'; c.lineWidth = 2; c.stroke();
+    c.restore();
+  },
+  drawChick(x, y, ang, air, pressing) {
+    const c = this.ctx;
+    c.save();
+    c.translate(x, y); c.rotate(ang);
+    // 雪橇
+    c.strokeStyle = '#8B4A2B'; c.lineWidth = 4; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(-22, -2); c.lineTo(18, -2); c.quadraticCurveTo(28, -2, 28, -10); c.stroke();
+    c.fillStyle = '#E46B47';
+    c.beginPath(); c.roundRect ? c.roundRect(-20, -12, 38, 8, 4) : c.rect(-20, -12, 38, 8); c.fill();
+    // 身體（按住時稍微壓扁）
+    const sq = pressing ? 0.9 : 1;
+    c.save(); c.translate(0, -12); c.scale(1 / sq, sq);
+    c.fillStyle = '#FFD54A'; c.beginPath(); c.arc(0, -15, 17, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#FFE58A'; c.beginPath(); c.ellipse(2, -10, 10, 8, 0, 0, Math.PI * 2); c.fill();
+    // 翅膀
+    c.fillStyle = '#F5C332';
+    c.save(); c.translate(-12, -14); c.rotate(air ? -1.1 : 0.4);
+    c.beginPath(); c.ellipse(0, 0, 5, 9, 0, 0, Math.PI * 2); c.fill(); c.restore();
+    // 呆毛、眼睛、嘴、腮紅
+    c.strokeStyle = '#F2B600'; c.lineWidth = 2.5;
+    c.beginPath(); c.moveTo(-1, -31); c.quadraticCurveTo(-5, -40, 2, -39); c.stroke();
+    c.fillStyle = '#3B2A1A'; c.beginPath(); c.arc(7, -19, 2.6, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#fff'; c.beginPath(); c.arc(7.8, -19.8, 0.9, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#FF9A3C'; c.beginPath(); c.moveTo(14, -16); c.lineTo(22, -14); c.lineTo(14, -11); c.closePath(); c.fill();
+    c.fillStyle = 'rgba(255, 158, 181, .85)'; c.beginPath(); c.ellipse(5, -12, 3.5, 2, 0, 0, Math.PI * 2); c.fill();
+    c.restore();
+    c.restore();
+  },
+};
+
+/* =========================================================
+   十、關卡控制（題目、計數、計時、提示、復原、結算）
+   ========================================================= */
+const Runner = {
+  idx: -1, def: null, inst: null, timers: null,
+  puzzle: null, pIdx: 0, th: [0, 0], lastPuzzle: {},
+  count: 0, hintUsed: false, finished: false, ruleFirst: false,
+  clock: { run: false, t0: 0, acc: 0, paused: false }, tickId: 0,
+
+  /** 開啟關卡；第 2～5 關從題庫抽題（避免連續抽到同一題） */
+  open(i, puzzleIdx) {
+    this.close();
+    this.idx = i;
+    this.def = LEVEL_DEFS[i];
+    const pool = PUZZLES[this.def.key];
+    if (pool) {
+      let k = puzzleIdx;
+      if (k === undefined) {
+        do { k = Math.floor(Math.random() * pool.length); } while (pool.length > 1 && k === this.lastPuzzle[i]);
+      }
+      this.pIdx = k;
+      this.puzzle = pool[k];
+      this.lastPuzzle[i] = k;
+    } else { this.pIdx = 0; this.puzzle = null; }
+    this.th = this.def.thresholds(this.puzzle);
+    App.show('level');
+    $('#levelTitle').textContent = `第 ${this.def.id} 關｜${this.def.name}`;
+    $('#boardCard').className = 'board-card lv' + this.def.id;
+    $('#board').innerHTML = '';
+    $('#chatAvatar').innerHTML = Art.chick('normal');
+    this.timers = makeTimers();
+    this.resetCounters();
+    this.inst = LEVEL_CREATORS[i](this.api());
+    this.setupToolbar();
+    this.updateStatus();
+    this.say(this.def.story);
+    if (!Store.data.rulesSeen[this.def.id]) this.showRule(true);
+    else this.inst.start();
+  },
+  api() {
+    const R = this;
+    return {
+      board: $('#board'),
+      timers: this.timers,
+      sfx: Sound,
+      puzzle: this.puzzle,
+      availWidth: () => Math.max(280, $('#boardCard').clientWidth - 24),
+      setCount(n) { R.count = n; R.updateStatus(); },
+      say(t) { R.say(t); },
+      win(v) { R.win(v); },
+      clockStart() { R.clockStart(); },
+      clockStop() { R.clockStop(); },
+      clockSeconds() { return R.clockSeconds(); },
+    };
+  },
+  close() {
+    if (this.inst) { this.inst.destroy(); this.inst = null; }
+    if (this.timers) this.timers.clearAll();
+    clearInterval(this.tickId);
+    this.clock.run = false;
+    Modal.close('modalRule');
+    Modal.close('modalResult');
+    $$('.flyer, .fx-p').forEach((f) => f.remove());
+  },
+  resetCounters() {
+    this.count = 0; this.hintUsed = false; this.finished = false;
+    clearInterval(this.tickId);
+    this.clock = { run: false, t0: 0, acc: 0, paused: false };
+  },
+  setupToolbar() {
+    $('#btnHint').innerHTML = Art.bulb + '提示';
+    $('#btnUndo').innerHTML = Art.undo + '復原';
+    $('#btnRestart').innerHTML = Art.restart + '重來';
+    $('#btnSwap').innerHTML = Art.swap + '換一題';
+    $('#btnUndo').disabled = !this.def.canUndo;
+    $('#btnUndo').title = this.def.canUndo ? '撤回上一步' : this.def.undoOff;
+    $('#btnSwap').title = this.puzzle ? '從題庫換一題新的盤面' : '重新洗牌';
+  },
+  value() { return this.def.id === 4 ? this.clockSeconds() : this.count; },
+  updateStatus() {
+    if (!this.def) return;
+    const d = this.def;
+    $('#chipCount').innerHTML = `${d.counter} <b class="num">${this.value()}</b>`;
+    $('#chipGoal').innerHTML = `<span class="s">★★★</span> ≤ ${this.th[0]} ${d.unit}`;
+    const pool = PUZZLES[d.key];
+    $('#chipPuzzle').hidden = !pool;
+    if (pool) $('#chipPuzzle').textContent = `題目 ${this.pIdx + 1} / ${pool.length}`;
+    const b = Store.data.best[String(d.id)];
+    $('#chipBest').innerHTML = b ? `最佳 <span style="color:var(--star)">${starStr(b.stars)}</span>` : '最佳：尚無紀錄';
+    $('#chipHint').hidden = !this.hintUsed;
+  },
+  say(t) {
+    const b = $('#bubble');
+    b.textContent = t;
+    FX.pulse(b, 'pop');
+  },
+
+  /* ---------- 計時（第 4 關） ---------- */
+  clockStart() {
+    if (this.clock.run) return;
+    this.clock.run = true;
+    this.clock.t0 = performance.now();
+    clearInterval(this.tickId);
+    this.tickId = setInterval(() => this.updateStatus(), 250);
+  },
+  clockStop() {
+    if (this.clock.run) { this.clock.acc += performance.now() - this.clock.t0; this.clock.run = false; }
+    clearInterval(this.tickId);
+    this.updateStatus();
+  },
+  clockPause() { if (this.clock.run) { this.clockStop(); this.clock.paused = true; } },
+  clockResume() { if (this.clock.paused) { this.clock.paused = false; this.clockStart(); } },
+  clockSeconds() {
+    const ms = this.clock.acc + (this.clock.run ? performance.now() - this.clock.t0 : 0);
+    return Math.floor(ms / 1000);
+  },
+
+  /* ---------- 工具列 ---------- */
+  hint() {
+    if (!this.inst || this.finished || Modal.anyOpen()) return;
+    if (this.inst.hint()) { this.hintUsed = true; this.updateStatus(); }
+  },
+  undo() {
+    if (!this.inst || this.finished || !this.def.canUndo) return;
+    this.inst.undo();
+  },
+  restart() {
+    if (!this.inst) return;
+    this.timers.clearAll();
+    $$('.flyer, .fx-p').forEach((f) => f.remove());
+    this.resetCounters();
+    this.inst.reset();
+    this.updateStatus();
+    this.say(this.def.story);
+    this.inst.start();
+  },
+  swap() {
+    if (!this.def) return;
+    const pool = PUZZLES[this.def.key];
+    if (!pool) { this.restart(); this.say('重新洗牌了！'); return; }
+    this.open(this.idx);
+    this.say(`換成第 ${this.pIdx + 1} 題囉！` + this.def.story);
+  },
+  showRule(first) {
+    this.ruleFirst = first;
+    this.clockPause();
+    const d = this.def;
+    $('#ruleChick').innerHTML = Art.chick('normal');
+    $('#ruleTitle').textContent = `第 ${d.id} 關｜${d.name}`;
+    $('#ruleStory').textContent = d.story;
+    $('#ruleText').textContent = d.rule;
+    $('#ruleGoal').textContent = `三星目標：★★★ ≤ ${this.th[0]} ${d.unit}`;
+    $('#ruleGo').textContent = first ? '開始！' : '繼續';
+    Modal.open('modalRule');
+  },
+  ruleClosed() {
+    Modal.close('modalRule');
+    if (!this.inst) return;
+    if (this.ruleFirst) {
+      Store.data.rulesSeen[this.def.id] = true;
+      Store.save();
+      this.inst.start();
+    } else this.clockResume();
+  },
+
+  /* ---------- 過關 ---------- */
+  win(value) {
+    if (this.finished) return;
+    this.finished = true;
+    this.clockStop();
+    const d = this.def;
+    const stars = calcStars(this.th, value, this.hintUsed);
+    const key = String(d.id);
+    const prev = Store.data.best[key];
+    const isNew = !prev || stars > prev.stars;
+    const firstClear5 = d.id === 5 && !prev;
+    if (isNew) Store.data.best[key] = { stars, value };
+    if (d.id < 5 && Store.data.unlocked < d.id + 1) Store.data.unlocked = d.id + 1;
+    Store.save();
+    this.updateStatus();
+    $('#chatAvatar').innerHTML = Art.chick('happy');
+
+    const last = d.id === 5;
+    $('#resChick').innerHTML = Art.chick('happy');
+    $('#resTitle').textContent = last ? '過關！啾啾快到家了！' : '過關！';
+    $('#resText').textContent = `本次成績：${value} ${d.unit}（三星目標 ≤ ${this.th[0]}）`;
+    $('#resHintNote').hidden = !this.hintUsed;
+    $('#resNew').hidden = !isNew;
+    $('#resNext').textContent = last ? '回家囉！' : '下一站';
+    const spans = $$('#resStars span');
+    spans.forEach((s) => s.classList.remove('go', 'on'));
+    Modal.open('modalResult', '#resNext');
+    Sound.win();
+    Confetti.burst(110);
+    spans.forEach((s, i) => this.timers.set(() => {
+      s.classList.add('go');
+      if (i < stars) { s.classList.add('on'); Sound.star(i); }
+    }, 350 + i * 260));
+    this.firstClear5 = firstClear5;
+  },
+};
+
+/* =========================================================
+   十一、畫面切換、地圖與結局
+   ========================================================= */
+const MAP_POINTS = {
+  wide: [[0.09, 0.74], [0.27, 0.48], [0.46, 0.73], [0.64, 0.45], [0.80, 0.70], [0.93, 0.30]],
+  tall: [[0.26, 0.09], [0.72, 0.25], [0.28, 0.42], [0.72, 0.59], [0.30, 0.76], [0.72, 0.92]],
+};
+
+const App = {
+  screen: 'map',
+  show(name) {
+    this.screen = name;
+    $('#screenMap').hidden = name !== 'map';
+    $('#screenLevel').hidden = name !== 'level';
+    $('#screenSlide').hidden = name !== 'slide';
+    window.scrollTo(0, 0);
+  },
+  showMap() {
+    if (this.screen === 'level') Runner.close();
+    if (this.screen === 'slide') Slide.leave();
+    Modal.close('modalResult');
+    this.show('map');
+    this.renderMap();
+  },
+  showSlide() {
+    Modal.close('modalEnding');
+    this.show('slide');
+    Slide.enter();
+  },
+  /** 通關結局：啾啾一路跳回家，雞媽媽出來迎接 */
+  showEnding() {
+    if (this.screen === 'level') Runner.close();
+    this.show('map');
+    this.renderMap();
+    const total = this.totalStars();
+    $('#endScene').innerHTML = Art.endingScene();
+    $('#endStars').textContent = `總星數 ${total} / 15`;
+    $('#endTip').textContent = total >= 15 ? '全部三星！你是山谷裡最厲害的嚮導！' : `還有 ${15 - total} 顆星沒拿到，用「換一題」再挑戰看看吧！`;
+    const card = $('#modalEnding .mcard');
+    card.classList.remove('play');
+    void card.offsetWidth;
+    card.classList.add('play');
+    Modal.open('modalEnding', '#endMap');
+    Sound.win();
+    setTimeout(() => { Sound.lantern(); Confetti.burst(120); }, reducedMotion() ? 0 : 2300);
+    setTimeout(() => Sound.win(), reducedMotion() ? 0 : 2500);
+  },
+  renderMute() {
+    $$('.mute-btn').forEach((b) => {
+      b.innerHTML = Art.speaker(Store.data.muted);
+      b.setAttribute('aria-pressed', String(Store.data.muted));
+      b.title = Store.data.muted ? '目前靜音，點擊開啟音效' : '點擊靜音';
+    });
+  },
+  totalStars() {
+    return ['1', '2', '3', '4', '5'].reduce((s, k) => s + (Store.data.best[k] ? Store.data.best[k].stars : 0), 0);
+  },
+  renderEndlessCard() {
+    $('#endlessBest').textContent = `最高紀錄 ${Store.data.endless.bestMeters} 公尺・最高分 ${Store.data.endless.bestScore}`;
+  },
+  /** 畫出山谷地圖與站點 */
+  renderMap() {
+    const card = $('#mapCard');
+    const W = card.clientWidth, H = card.clientHeight;
+    if (!W || !H) return;
+    const tall = window.innerWidth < 700;
+    const pts = MAP_POINTS[tall ? 'tall' : 'wide'].map(([x, y]) => [x * W, y * H]);
+    const rand = mulberry32(11);
+    const cleared = !!Store.data.best['5'];
+
+    let road = `M${pts[0][0]},${pts[0][1]}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+      const c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      road += ` C${c1[0]},${c1[1]} ${c2[0]},${c2[1]} ${p2[0]},${p2[1]}`;
+    }
+    const bands = tall ? [[0.07, 18, '#D3F2BC'], [0.30, 22, '#BDEBA0'], [0.53, 22, '#AEE58F'], [0.76, 20, '#9BE07B']]
+                       : [[0.30, 26, '#D3F2BC'], [0.50, 24, '#B8EA9A'], [0.72, 20, '#9BE07B']];
+    const hills = bands.map(([yr, a, col], k) => {
+      const y0 = yr * H;
+      let d = `M0,${y0}`;
+      for (let i = 0; i < 4; i++) {
+        const x1 = (i + 0.5) * W / 4, x2 = (i + 1) * W / 4;
+        d += ` Q${x1},${y0 + (i % 2 === k % 2 ? -a : a)} ${x2},${y0}`;
+      }
+      return `<path d="${d} L${W},${H} L0,${H} Z" fill="${col}"/>`;
+    }).join('');
+    let deco = '';
+    for (let i = 0; i < (tall ? 16 : 18); i++) {
+      const x = rand() * W, y = (tall ? 0.1 : 0.34) * H + rand() * H * (tall ? 0.88 : 0.62);
+      if (pts.some(([px, py]) => Math.hypot(px - x, py - y) < 70)) continue;
+      if (i % 3 === 0) deco += `<g transform="translate(${x},${y})"><rect x="-3" y="0" width="6" height="14" rx="2" fill="#A0703C"/><circle cy="-6" r="14" fill="#5DBB63"/><circle cx="-4" cy="-10" r="5" fill="#8BD48A"/></g>`;
+      else deco += `<g transform="translate(${x},${y})">${[0, 72, 144, 216, 288].map((a) => `<circle cy="-4" r="3" fill="${i % 2 ? '#FF9EB5' : '#fff'}" transform="rotate(${a})"/>`).join('')}<circle r="2.4" fill="#FFD54A"/></g>`;
+    }
+    const clouds = [0, 1, 2].map((i) => `<g class="cloud${i % 2 ? ' slow' : ''}" style="transform-box:view-box;animation-delay:${-i * 17}s"><g transform="translate(0,${(tall ? 0.03 : 0.08) * H + i * 26})" fill="#fff" opacity=".9"><circle cx="20" cy="14" r="14"/><circle cx="40" cy="8" r="18"/><circle cx="62" cy="14" r="13"/><rect x="20" y="14" width="42" height="13"/></g></g>`).join('');
+    const [hx, hy] = pts[5];
+    const win = cleared ? '#FFE680' : '#BDEBFF';
+    const house = `<g transform="translate(${hx},${hy})"><ellipse cx="0" cy="26" rx="44" ry="8" fill="rgba(90,60,30,.15)"/>${cleared ? '<circle cx="0" cy="-6" r="52" fill="#FFE680" opacity=".25"/>' : ''}<rect x="-30" y="-14" width="60" height="40" rx="6" fill="#FFE2C2" stroke="#E0B48A" stroke-width="2"/><path d="M-38 -12 L0 -44 L38 -12 Z" fill="#FF8A65" stroke="#E46B47" stroke-width="3" stroke-linejoin="round"/><rect x="-8" y="4" width="16" height="22" rx="7" fill="#C47A3A"/><rect x="12" y="-4" width="12" height="10" rx="2" fill="${win}" stroke="#E0B48A" stroke-width="2"/><rect x="16" y="-40" width="8" height="16" fill="#C47A3A"/></g>`;
+
+    const svg = `<svg class="map-bg" viewBox="0 0 ${W} ${H}" aria-hidden="true">
+      <defs><linearGradient id="mapSky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#BDEBFF"/><stop offset="1" stop-color="#FFF5DC"/></linearGradient></defs>
+      <rect width="${W}" height="${H}" fill="url(#mapSky)"/>
+      <circle cx="${tall ? W - 50 : 70}" cy="${tall ? 40 : 56}" r="26" fill="#FFD54A"/><circle cx="${tall ? W - 50 : 70}" cy="${tall ? 40 : 56}" r="40" fill="#FFD54A" opacity=".25"/>
+      ${clouds}${hills}${deco}
+      <path d="${road}" fill="none" stroke="#E2C391" stroke-width="26" stroke-linecap="round"/>
+      <path d="${road}" fill="none" stroke="#F8E6BD" stroke-width="18" stroke-linecap="round"/>
+      <path d="${road}" fill="none" stroke="#fff" stroke-width="3" stroke-dasharray="4 12" stroke-linecap="round" opacity=".9"/>
+      ${house}
+    </svg>`;
+
+    const unlocked = Store.data.unlocked;
+    const stations = LEVEL_DEFS.map((d, i) => {
+      const locked = d.id > unlocked;
+      const best = Store.data.best[String(d.id)];
+      const st = best ? best.stars : 0;
+      return `<button class="station" data-i="${i}" style="left:${pts[i][0]}px;top:${pts[i][1]}px" ${locked ? 'disabled' : ''}
+          aria-label="第 ${d.id} 關 ${d.name}${locked ? '（未解鎖）' : `，最高 ${st} 星`}">
+          <span class="badge"><span class="num-tag">${d.id}</span>${Art.stationIcon(i)}${locked ? `<span class="lock">${Art.lock}</span>` : ''}</span>
+          <span class="label">${d.name}<span class="st">${locked ? '未解鎖' : starStr(st)}</span></span>
+        </button>`;
+    }).join('');
+    // 啾啾的位置：通關後站在家門口
+    const cur = Math.min(unlocked, 5) - 1;
+    const [chx, chy] = cleared ? [hx - 50, hy + 26] : [pts[cur][0] - 54, pts[cur][1] + 12];
+    const chick = `<div class="map-chick" style="left:${chx}px;top:${chy}px">${Art.chick(cleared ? 'happy' : 'normal')}</div>`;
+    const home = cleared
+      ? `<button class="home-label home-btn" style="left:${hx}px;top:${hy + 36}px">啾啾的家・重看結局</button>`
+      : `<div class="home-label" style="left:${hx}px;top:${hy + 36}px">啾啾的家</div>`;
+    card.innerHTML = svg + stations + chick + home;
+    $$('.station', card).forEach((b) => b.addEventListener('click', () => Runner.open(Number(b.dataset.i))));
+    const hb = $('.home-btn', card);
+    if (hb) hb.addEventListener('click', () => this.showEnding());
+
+    $('#totalStars .num').textContent = `${this.totalStars()} / 15`;
+    this.renderEndlessCard();
+  },
+};
+
+/* =========================================================
+   十二、事件綁定與初始化
+   ========================================================= */
+function init() {
+  Store.load();
+  $('#storageNote').hidden = Store.ok;
+  $('#endlessArt').innerHTML = Art.sled;
+  $('#introChick').innerHTML = Art.chick('happy');
+  App.renderMute();
+  Slide.init();
+
+  // 音訊在第一次互動後才啟用；介面按鈕有點擊音
+  document.addEventListener('pointerdown', () => Sound.init(), true);
+  document.addEventListener('keydown', () => Sound.init(), true);
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.btn, .station, .endless-card, .linkbtn, .home-btn');
+    if (b && !b.disabled) Sound.pop();
+  });
+
+  $$('.mute-btn').forEach((b) => b.addEventListener('click', () => {
+    Store.data.muted = !Store.data.muted;
+    Store.save();
+    App.renderMute();
+  }));
+  $('#btnStory').addEventListener('click', () => Modal.open('modalIntro'));
+  $('#introGo').addEventListener('click', () => {
+    Modal.close('modalIntro');
+    Store.data.introSeen = true;
+    Store.save();
+  });
+  $('#endlessCard').addEventListener('click', () => App.showSlide());
+  $('#btnBack').addEventListener('click', () => App.showMap());
+  $('#slideBack').addEventListener('click', () => App.showMap());
+  $('#btnRule').addEventListener('click', () => Runner.showRule(false));
+  $('#ruleGo').addEventListener('click', () => Runner.ruleClosed());
+  $('#btnHint').addEventListener('click', () => Runner.hint());
+  $('#btnUndo').addEventListener('click', () => Runner.undo());
+  $('#btnRestart').addEventListener('click', () => Runner.restart());
+  $('#btnSwap').addEventListener('click', () => Runner.swap());
+  $('#resAgain').addEventListener('click', () => { Modal.close('modalResult'); Runner.restart(); });
+  $('#resNext').addEventListener('click', () => {
+    Modal.close('modalResult');
+    if (Runner.idx < 4) Runner.open(Runner.idx + 1); else App.showEnding();
+  });
+  $('#resMap').addEventListener('click', () => App.showMap());
+  $('#endMap').addEventListener('click', () => { Modal.close('modalEnding'); App.renderMap(); });
+  $('#endSlide').addEventListener('click', () => App.showSlide());
+
+  $('#btnClear').addEventListener('click', () => Modal.open('modalConfirm', '#cfCancel'));
+  $('#cfCancel').addEventListener('click', () => Modal.close('modalConfirm'));
+  $('#cfOk').addEventListener('click', () => {
+    Modal.close('modalConfirm');
+    Store.clear();
+    Store.save();
+    App.renderMute();
+    App.renderMap();
+    Modal.open('modalIntro');
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!$('#modalConfirm').hidden) Modal.close('modalConfirm');
+    else if (!$('#modalRule').hidden) Runner.ruleClosed();
+    else if (!$('#modalIntro').hidden) $('#introGo').click();
+    else if (!$('#modalEnding').hidden) $('#endMap').click();
+  });
+
+  let rt = 0;
+  window.addEventListener('resize', () => {
+    clearTimeout(rt);
+    rt = setTimeout(() => {
+      if (App.screen === 'map') App.renderMap();
+      else if (App.screen === 'level' && Runner.inst) Runner.inst.resize();
+      else if (App.screen === 'slide') Slide.resize();
+    }, 120);
+  });
+
+  App.show('map');
+  App.renderMap();
+  if (!Store.data.introSeen) Modal.open('modalIntro');
+}
+
+/* =========================================================
+   十三、自我測試（在 console 執行 runSelfTests()）
+   測試直接呼叫遊戲使用的同一份規則函式，並逐一驗證題庫
+   ========================================================= */
+function runSelfTests() {
+  const rows = [];
+  const add = (id, name, expected, actual, pass) =>
+    rows.push({ '#': id, '測試': name, '預期': expected, '實際': String(actual), '通過': pass ? '✅' : '❌' });
+  const safe = (fn) => { try { return fn(); } catch (e) { return { error: e.message }; } };
+  const B0 = PUZZLES.berry[0], P0 = PUZZLES.pipe[0], S0 = PUZZLES.stroke[0], M0 = PUZZLES.mirror[0];
+
+  // 1. 第 1 關牌組
+  const deck = MemoryLogic.makeDeck();
+  const counts = Array.from({ length: 6 }, (_, k) => deck.filter((x) => x === k).length);
+  add(1, '第 1 關洗牌後的牌組', '12 張，6 種花各 2 張', `${deck.length} 張，各 ${counts.join('/')}`,
+      deck.length === 12 && counts.every((n) => n === 2));
+
+  // 2. 第 1 關星等
+  const s2 = [9, 10, 13, 14].map((v) => calcStars(LEVEL_DEFS[0].thresholds(), v, false));
+  add(2, '第 1 關星等：9 / 10 / 13 / 14 次', '3 / 2 / 2 / 1', s2.join(' / '), s2.join() === '3,2,2,1');
+
+  // 3. 第 2 關題庫：每題 BFS 最短解等於題庫標示
+  const r3 = PUZZLES.berry.map((p) => { const sol = BerryLogic.solve(BerryLogic.initState(p)); return sol ? sol.length : -1; });
+  add(3, `第 2 關題庫 ${PUZZLES.berry.length} 題的 BFS 最短解`, PUZZLES.berry.map((p) => p.opt).join('/'), r3.join('/'),
+      r3.every((v, i) => v === PUZZLES.berry[i].opt));
+
+  // 4、5. 不合法移動（第 1 題）
+  const init2 = BerryLogic.initState(B0);
+  const t4 = [['Y', 'R'], ['B'], [], [], []];
+  const m4a = BerryLogic.canMove(t4, 0, 1), m4b = BerryLogic.canMove(t4, 0, 2);
+  add(4, '第 2 關：紅莓放到藍莓上／放進空籃', '不合法／合法', `${m4a ? '合法' : '不合法'}／${m4b ? '合法' : '不合法'}`, !m4a && m4b);
+  const m5 = BerryLogic.canMove(init2, 1, 2);
+  add(5, '第 2 關第 1 題：籃 2 → 籃 3（籃 3 已滿）', '不合法', m5 ? '合法' : '不合法', !m5);
+
+  // 6. 完成判定
+  const solvedState = [['R', 'R', 'R', 'R'], ['B', 'B', 'B', 'B'], ['Y', 'Y', 'Y', 'Y'], [], []];
+  const a6 = BerryLogic.isSolved(init2), b6 = BerryLogic.isSolved(solvedState);
+  add(6, '第 2 關：初始盤面 / 三籃各裝滿同色', '未完成 / 完成', `${a6 ? '完成' : '未完成'} / ${b6 ? '完成' : '未完成'}`, !a6 && b6);
+
+  // 7. 第 3 關題庫：初始都不通水
+  const r7 = PUZZLES.pipe.map((p) => PipeLogic.flood(PipeLogic.parse(p), p).connected);
+  add(7, `第 3 關題庫 ${PUZZLES.pipe.length} 題的初始盤面`, '全部不通', r7.map((c) => (c ? '通' : '不通')).join('/'), r7.every((c) => !c));
+
+  // 8. 第 3 關題庫：依解答旋轉後通水，且次數等於標示
+  const r8 = PUZZLES.pipe.map((p) => {
+    const g = PipeLogic.parse(p);
+    let clicks = 0;
+    for (const [r, c, need] of p.solution) {
+      const k = PipeLogic.clicksTo(g[r][c], need);
+      clicks += k;
+      g[r][c].r = (g[r][c].r + k) % 4;
+    }
+    return { clicks, ok: PipeLogic.flood(g, p).connected };
+  });
+  add(8, '第 3 關題庫依解答旋轉', '次數 ' + PUZZLES.pipe.map((p) => p.min).join('/') + '，全部通水',
+      '次數 ' + r8.map((x) => x.clicks).join('/') + (r8.every((x) => x.ok) ? '，全部通水' : '，有不通'),
+      r8.every((x, i) => x.ok && x.clicks === PUZZLES.pipe[i].min));
+
+  // 9. 轉 4 次回到原方向
+  let ok9 = true;
+  for (const t of ['I', 'L', 'T']) for (let r = 0; r < 4; r++) {
+    const tile = { t, r };
+    const before = PipeLogic.open(tile);
+    for (let k = 0; k < 4; k++) tile.r = (tile.r + 1) % 4;
+    if (PipeLogic.open(tile) !== before || PipeLogic.rotMask(PipeLogic.BASE[t], r + 4) !== before) ok9 = false;
+  }
+  add(9, '第 3 關：任一水道轉 4 次', '回到原方向', ok9 ? '回到原方向' : '方向不同', ok9);
+
+  // 10. 第 4 關題庫：解答合法
+  const S = StrokeLogic;
+  const r10 = PUZZLES.stroke.map((p) => {
+    const sol = p.solution;
+    let ok = sol[0][0] === p.start[0] && sol[0][1] === p.start[1] && sol.length === S.total(p);
+    const path = [sol[0]];
+    for (let i = 1; i < sol.length && ok; i++) {
+      if (S.classify(p, path, sol[i][0], sol[i][1]) !== 'extend') ok = false;
+      path.push(sol[i]);
+    }
+    return ok;
+  });
+  add(10, `第 4 關題庫 ${PUZZLES.stroke.length} 題的解答`, '從起點走完所有格、相鄰、不重複',
+      r10.every(Boolean) ? '全部合法' : r10.map((v) => (v ? '✓' : '✗')).join(''), r10.every(Boolean));
+
+  // 11. 不合法移動（第 1 題）
+  const a11 = S.classify(S0, [[2, 2]], 0, 0);
+  const b11 = S.classify(S0, [[2, 2], [1, 2], [1, 1], [2, 1]], 2, 2);
+  add(11, '第 4 關：跳到 (0,0)；走回已走過且非前一格', '都不合法', `${a11} / ${b11}`, a11 === 'invalid' && b11 === 'invalid');
+
+  // 12、13. 提示
+  const h12 = S.hint(S0, [[2, 2]]);
+  add(12, '第 4 關第 1 題提示：只有起點時', '下一格 (1,2)', h12 && h12.type === 'next' ? `下一格 (${h12.cell})` : JSON.stringify(h12),
+      !!h12 && h12.type === 'next' && h12.cell[0] === 1 && h12.cell[1] === 2);
+  const h13 = S.hint(S0, [[2, 2], [2, 1]]);
+  add(13, '第 4 關第 1 題提示：(2,2)→(2,1)', '走不完，退回第 1 格', h13 && h13.type === 'back' ? `退回第 ${h13.n} 格` : JSON.stringify(h13),
+      !!h13 && h13.type === 'back' && h13.n === 1);
+
+  // 14. 第 5 關第 1 題初始點亮
+  const M = MirrorLogic;
+  const t14 = M.trace(M0, M.initState(M0));
+  const lit14 = [...t14.lit].map((i) => `(${M0.lanterns[i]})`);
+  add(14, '第 5 關第 1 題初始點亮的燈籠', '只有 (1,5)', lit14.join(' '), lit14.length === 1 && lit14[0] === '(1,5)');
+
+  // 15. 第 5 關題庫：解答全亮、初始沒全亮、相差次數等於標示
+  const r15 = PUZZLES.mirror.map((p) => {
+    const sol = M.solState(p), ini = M.initState(p);
+    const diff = ini.filter((v, i) => v !== sol[i]).length;
+    return M.allLit(p, sol) && !M.allLit(p, ini) && diff === p.min;
+  });
+  add(15, `第 5 關題庫 ${PUZZLES.mirror.length} 題`, '解答全亮、初始未全亮、相差次數正確',
+      r15.every(Boolean) ? '全部正確' : r15.map((v) => (v ? '✓' : '✗')).join(''), r15.every(Boolean));
+
+  // 16. 第 5 關提示
+  const h16 = M.hint(M0, M.initState(M0));
+  const m16 = h16 === null ? null : M0.mirrors[h16];
+  add(16, '第 5 關第 1 題初始狀態的提示', '指向 (4,5)', m16 ? `(${m16[0]},${m16[1]})` : '無', !!m16 && m16[0] === 4 && m16[1] === 5);
+
+  // 17. 提示上限與題目門檻
+  const th17 = LEVEL_DEFS[1].thresholds(B0);
+  const s17 = calcStars(th17, B0.opt, true);
+  add(17, '用過提示時的星等（原本 3 星）', '2 星', s17 + ' 星', s17 === 2);
+
+  // 18. 滑行：不操作模擬
+  const r18 = safe(() => {
+    const sim = new SlideSim(12345);
+    let bad = false, below = false;
+    while (!sim.over && sim.time < 60) {
+      sim.step(false);
+      if (![sim.x, sim.y, sim.vx, sim.vy].every(Number.isFinite)) { bad = true; break; }
+      if (sim.y > sim.terrain.y(sim.x) + 1) { below = true; break; }
+    }
+    return { over: sim.over, time: sim.time, bad, below, m: sim.meters() };
+  });
+  const ok18 = !r18.error && r18.over && r18.time < 60 && !r18.bad && !r18.below;
+  add(18, '滑行：固定種子、不操作', '60 秒內結束、無 NaN、不穿地',
+      r18.error ? r18.error : `${r18.time.toFixed(1)} 秒結束、${r18.m} 公尺、NaN:${r18.bad ? '有' : '無'}、穿地:${r18.below ? '有' : '無'}`, ok18);
+
+  // 19. 地形連續性
+  const r19 = safe(() => {
+    const t = new Terrain(99), rnd = mulberry32(5);
+    let worst = 0;
+    for (let i = 0; i < 200; i++) {
+      const x = 10 + rnd() * 20000, h = 0.01;
+      const num = (t.y(x + h) - t.y(x - h)) / (2 * h);
+      worst = Math.max(worst, Math.abs(num - t.slope(x)));
+    }
+    return worst;
+  });
+  add(19, '滑行：地形斜率與數值微分', '相差 < 0.01', typeof r19 === 'number' ? r19.toExponential(2) : r19.error, typeof r19 === 'number' && r19 < 0.01);
+
+  // 20. 損毀的儲存資料
+  const r20 = safe(() => parseStored('{"unlocked": 3, "best": [broken'));
+  const ok20 = !r20.error && JSON.stringify(r20) === JSON.stringify(defaultData());
+  add(20, '儲存：讀到損毀的 JSON', '不拋錯，回傳預設資料', r20.error ? '拋出錯誤' : (ok20 ? '回傳預設資料' : JSON.stringify(r20)), ok20);
+
+  // 21. 滑行：星星磁吸
+  const r21 = safe(() => {
+    const sim = new SlideSim(7);
+    const st = { x: sim.x + 50, y: sim.y - SLIDE_CONFIG.CHICK_UP, value: 1, taken: false };
+    sim.terrain.stars.push(st);
+    let n = 0;
+    while (!st.taken && n < 60) { sim.step(false); n++; }
+    return { taken: st.taken, n };
+  });
+  add(21, '滑行：星星在磁吸範圍內會被吸過來收集', '0.5 秒內收集', r21.error ? r21.error : (r21.taken ? `${r21.n} 步後收集` : '沒有收集'), !r21.error && r21.taken);
+
+  // 22. 滑行：起飛輔助只在「放開」時觸發
+  const r22 = safe(() => {
+    const count = (hold) => {
+      const sim = new SlideSim(2024);
+      let n = 0;
+      for (let i = 0; i < 120 * 20 && !sim.over; i++) {
+        sim.step(hold(sim));
+        n += sim.events.filter((e) => e.type === 'takeoff').length;
+        sim.events.length = 0;
+      }
+      return n;
+    };
+    return { holding: count(() => true), smart: count((s) => s.terrain.slope(s.x + s.vx * 0.05) > 0) };
+  });
+  add(22, '滑行：起飛輔助（一直按住 / 正確放開）', '按住時 0 次、放開時 > 0 次',
+      r22.error ? r22.error : `按住 ${r22.holding} 次 / 放開 ${r22.smart} 次`, !r22.error && r22.holding === 0 && r22.smart > 0);
+
+  console.table(rows);
+  const passed = rows.filter((r) => r['通過'] === '✅').length;
+  console.log(`自我測試：通過 ${passed} / ${rows.length}`);
+  return passed;
+}
+window.runSelfTests = runSelfTests;
+
+init();
+})();
+</script>
+</body>
+</html>
