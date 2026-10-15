@@ -1095,15 +1095,28 @@ const Sound = {
    五、紙屑特效
    ========================================================= */
 const Confetti = {
-  cv: null, ctx: null, parts: [], raf: 0, last: 0,
+  cv: null, ctx: null, parts: [], raf: 0, last: 0, dpr: 1, w: 0, h: 0,
+  /** 畫布尺寸跟著目前視窗；手機網址列收合、轉向時視窗大小會變 */
+  fit() {
+    const w = window.innerWidth, h = window.innerHeight;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const W = Math.round(w * dpr), H = Math.round(h * dpr);
+    if (this.cv.width !== W || this.cv.height !== H) { this.cv.width = W; this.cv.height = H; }
+    this.w = w; this.h = h; this.dpr = dpr;
+  },
+  /** 以畫布實際像素清除整張，避免視窗變小時邊緣留下殘影 */
+  clear() {
+    const c = this.ctx;
+    c.setTransform(1, 0, 0, 1, 0, 0);
+    c.clearRect(0, 0, this.cv.width, this.cv.height);
+    c.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+  },
   burst(n) {
     if (reducedMotion()) return;
     this.cv = this.cv || $('#confetti');
     this.ctx = this.ctx || this.cv.getContext('2d');
-    const w = window.innerWidth, h = window.innerHeight;
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    this.cv.width = w * dpr; this.cv.height = h * dpr;
-    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    this.fit();
+    const w = this.w, h = this.h;
     const colors = ['#FF8A65', '#FFC83D', '#43C97A', '#5B9BFA', '#FF9EB5', '#A78BFA'];
     for (let i = 0; i < n && this.parts.length < 120; i++) {
       this.parts.push({
@@ -1119,11 +1132,12 @@ const Confetti = {
   tick(now) {
     const dt = Math.min(0.05, (now - this.last) / 1000); this.last = now;
     const c = this.ctx;
-    c.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    this.fit();
+    this.clear();
     for (let i = this.parts.length - 1; i >= 0; i--) {
       const p = this.parts[i];
       p.life -= dt;
-      if (p.life <= 0 || p.y > window.innerHeight + 20) { this.parts.splice(i, 1); continue; }
+      if (p.life <= 0 || p.y > this.h + 20) { this.parts.splice(i, 1); continue; }
       p.vy += 900 * dt; p.vx *= 0.99;
       p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt;
       c.save(); c.translate(p.x, p.y); c.rotate(p.r);
@@ -1132,7 +1146,7 @@ const Confetti = {
       c.restore();
     }
     if (this.parts.length) this.raf = requestAnimationFrame((t) => this.tick(t));
-    else { this.raf = 0; c.clearRect(0, 0, window.innerWidth, window.innerHeight); }
+    else { this.raf = 0; this.clear(); }
   },
 };
 
